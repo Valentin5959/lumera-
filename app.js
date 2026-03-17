@@ -2161,10 +2161,12 @@ Réponds avec ce format exact (markdown simple) :
     });
     const data = await res.json();
     if (data.error) {
-      box.innerHTML = `<div class="ai-error">❌ Erreur API : ${data.error.message || JSON.stringify(data.error)}</div>`;
-    } else {
-      const text = data.content?.[0]?.text || 'Aucune réponse.';
+      box.innerHTML = `<div class="ai-error">❌ ${data.error.message || JSON.stringify(data.error)}</div>`;
+    } else if (data.content?.[0]?.text) {
+      const text = data.content[0].text;
       box.innerHTML = `<div class="ai-content">${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>`;
+    } else {
+      box.innerHTML = `<div class="ai-error">⚠️ Réponse inattendue : ${JSON.stringify(data).slice(0, 200)}</div>`;
     }
   } catch(e) {
     box.innerHTML = `<div class="ai-error">❌ ${e.message}</div>`;
