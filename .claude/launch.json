@@ -4,7 +4,7 @@
     {
       "name": "lumera",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-p", "3000", "."],
+      "runtimeArgs": ["serve", "-p", "3000", "C:/Users/Vdarr/Desktop/Informatique/HTML/cinelog"],
       "port": 3000
     }
   ]
