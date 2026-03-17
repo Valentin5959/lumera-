@@ -4713,13 +4713,14 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
         return `<div class="sdrop-item sdrop-tmdb ${inLib ? 'sdrop-inlib' : ''}"
           data-tmdb-id="${r.id}" data-title="${(r.title||r.name||'').replace(/"/g,'&quot;')}"
           data-year="${year}" data-poster="${poster}" data-type="${type}"
+          data-vote="${r.vote_average||''}"
           data-synopsis="${(r.overview||'').slice(0,300).replace(/"/g,'&quot;')}">
           ${poster ? `<img class="sdrop-thumb" src="${poster}" onerror="this.style.display='none'" />` : `<div class="sdrop-thumb sdrop-ph">${typeEmoji(type)}</div>`}
           <div class="sdrop-info">
             <div class="sdrop-title">${r.title || r.name}</div>
             <div class="sdrop-meta">${year} · ${r.media_type === 'tv' ? '📺 Série' : '🎬 Film'}${r.vote_average ? ' · ★ '+r.vote_average.toFixed(1) : ''}</div>
           </div>
-          <button class="sdrop-add-btn" title="${inLib ? 'Déjà dans ta bibliothèque' : 'Ajouter en watchlist'}">${inLib ? '✅' : '＋'}</button>
+          <span class="sdrop-add-btn" title="${inLib ? 'Déjà dans ta bibliothèque — cliquer pour voir' : 'Cliquer pour ajouter / modifier'}">${inLib ? '✅' : '✏️'}</span>
         </div>`;
       }).join('');
     }
@@ -4737,33 +4738,38 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
       });
     });
 
-    // TMDB add button
-    dropdown.querySelectorAll('.sdrop-tmdb .sdrop-add-btn').forEach(btn => {
-      btn.addEventListener('mousedown', ev => {
-        ev.preventDefault();
-        const el = btn.closest('.sdrop-tmdb');
-        if (library.some(m => m.title === el.dataset.title)) { showToast('Déjà dans ta bibliothèque', 'error'); return; }
-        library.unshift({
-          id: uid(), title: el.dataset.title, type: el.dataset.type,
-          status: 'watchlist', year: parseInt(el.dataset.year) || null,
-          poster: el.dataset.poster, synopsis: el.dataset.synopsis,
-          tmdbId: el.dataset.tmdbId,
-          genres: '', rating: null, review: '', favorite: false,
-          trailer: null, tags: [], dateAdded: Date.now()
-        });
-        save(); logAction('added', el.dataset.title); updateMiniWidget();
-        btn.textContent = '✅'; btn.disabled = true;
-        showToast(`📋 ${el.dataset.title} ajouté en watchlist !`);
-      });
-    });
-
-    // TMDB item click (not on button) → open detail if in lib, else add form
+    // TMDB item click → open add modal pre-filled (or edit if already in lib)
     dropdown.querySelectorAll('.sdrop-tmdb').forEach(el => {
       el.addEventListener('mousedown', ev => {
-        if (ev.target.classList.contains('sdrop-add-btn')) return;
         ev.preventDefault();
+        dropdown.classList.add('hidden'); input.value = '';
         const inLib = library.find(m => m.title === el.dataset.title);
-        if (inLib) { dropdown.classList.add('hidden'); input.value = ''; openDetail(inLib.id); }
+        if (inLib) { openDetail(inLib.id); return; }
+        // Open add modal then pre-fill with TMDB data
+        openAddModal();
+        requestAnimationFrame(() => {
+          document.getElementById('fTitle').value = el.dataset.title;
+          document.getElementById('fYear').value = el.dataset.year;
+          document.getElementById('fPoster').value = el.dataset.poster;
+          document.getElementById('fSynopsis').value = el.dataset.synopsis;
+          document.getElementById('fTmdbRating').value = el.dataset.vote ? parseFloat(el.dataset.vote).toFixed(1) : '';
+          currentType = el.dataset.type;
+          document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === currentType));
+          updateEpisodeFieldsVisibility();
+          updateSearchBtnLabel();
+          // Fetch trailer automatically
+          const key = localStorage.getItem('lumera_tmdb_key');
+          const tmdbId = el.dataset.tmdbId;
+          const mtype = el.dataset.type === 'series' ? 'tv' : 'movie';
+          if (key && tmdbId) {
+            fetch(`https://api.themoviedb.org/3/${mtype}/${tmdbId}/videos?api_key=${key}&language=fr-FR`)
+              .then(r => r.json()).then(vData => {
+                let trailer = (vData.results||[]).find(v => v.type==='Trailer' && v.site==='YouTube' && v.iso_639_1==='fr');
+                if (!trailer) trailer = (vData.results||[]).find(v => v.type==='Trailer' && v.site==='YouTube');
+                if (trailer) document.getElementById('fTrailer').value = `https://www.youtube.com/watch?v=${trailer.key}`;
+              }).catch(()=>{});
+          }
+        });
       });
     });
   }
