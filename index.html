@@ -10,7 +10,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Lumèra" />
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=17" />
 </head>
 <body>
 <div id="topProgressBar"></div>
@@ -35,6 +35,7 @@
       <button class="nav-btn" data-page="stats">Statistiques</button>
       <button class="nav-btn" data-page="journal">Journal</button>
       <button class="nav-btn" data-page="discover">🔭 Découvrir</button>
+      <button class="nav-btn" data-page="profil">👤 Profil</button>
     </nav>
     <div class="nav-actions">
       <button class="btn-icon" id="themeToggle" title="Changer le thème">🌙</button>
@@ -273,6 +274,12 @@
         <div class="empty-icon">🔭</div>
         <p>Configure ta clé TMDB pour voir les suggestions.</p>
       </div>
+    </section>
+
+    <!-- PAGE PROFIL -->
+    <section id="page-profil" class="page">
+      <div class="page-header"><h2>👤 Mon Profil</h2></div>
+      <div id="profilContainer"></div>
     </section>
 
     <!-- PAGE JOURNAL -->
@@ -665,6 +672,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>

@@ -1442,6 +1442,7 @@ function showPage(name) {
   if (name === 'stats') renderStats();
   if (name === 'journal') renderJournal();
   if (name === 'discover') { if (typeof renderDiscover === 'function') renderDiscover(); }
+  if (name === 'profil') { if (typeof renderProfil === 'function') renderProfil(); }
   // H. Animate page title
   requestAnimationFrame(() => {
     const pg = document.getElementById('page-' + name);
@@ -1486,12 +1487,32 @@ function renderHome() {
     }
   }
 
+  // Streak calculation
+  const _dayMap = {};
+  library.forEach(m => {
+    if (!m.dateAdded) return;
+    const dk = new Date(m.dateAdded).toISOString().slice(0, 10);
+    _dayMap[dk] = (_dayMap[dk] || 0) + 1;
+  });
+  let _streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    if (_dayMap[d.toISOString().slice(0, 10)]) _streak++;
+    else if (i > 0) break;
+  }
+
   document.getElementById('quickStats').innerHTML = `
     <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-value" data-counter="${movies}">${movies}</div><div class="stat-label">Films vus</div></div>
     <div class="stat-card"><div class="stat-icon">📺</div><div class="stat-value" data-counter="${series}">${series}</div><div class="stat-label">Séries vues</div></div>
     <div class="stat-card"><div class="stat-icon">✨</div><div class="stat-value" data-counter="${animes}">${animes}</div><div class="stat-label">Animés vus</div></div>
     <div class="stat-card"><div class="stat-icon">🎮</div><div class="stat-value" data-counter="${games}">${games}</div><div class="stat-label">Jeux terminés</div></div>
     <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-value" ${avgRating !== '-' ? `data-counter="${avgRating}"` : ''}>${avgRating}</div><div class="stat-label">Note moyenne</div></div>
+    <div class="stat-card stat-card-streak ${_streak > 0 ? 'streak-active' : ''}">
+      <div class="stat-icon">${_streak > 2 ? '🔥' : _streak > 0 ? '✨' : '💤'}</div>
+      <div class="stat-value">${_streak}</div>
+      <div class="stat-label">Jours de suite</div>
+      ${_streak === 0 ? '<div class="streak-warn">Démarre ton streak !</div>' : ''}
+    </div>
   `;
   animateStatValues();
 
@@ -4442,3 +4463,188 @@ function deleteRewatchEntry(itemId, entryId) {
 }
 window.deleteRewatchEntry = deleteRewatchEntry;
 
+/* ══════════════════════════════════════════════════════════════════════════ */
+/*  J. PAGE PROFIL                                                            */
+/* ══════════════════════════════════════════════════════════════════════════ */
+function calcStreak() {
+  const dayMap = {};
+  library.forEach(m => {
+    if (!m.dateAdded) return;
+    const k = new Date(m.dateAdded).toISOString().slice(0, 10);
+    dayMap[k] = (dayMap[k] || 0) + 1;
+  });
+  let current = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    if (dayMap[d.toISOString().slice(0, 10)]) current++;
+    else if (i > 0) break;
+  }
+  const allDays = Object.keys(dayMap).sort();
+  let best = 0, temp = 0;
+  allDays.forEach((day, i) => {
+    if (i === 0) { temp = 1; }
+    else {
+      const diff = (new Date(day) - new Date(allDays[i - 1])) / 86400000;
+      temp = diff === 1 ? temp + 1 : 1;
+    }
+    best = Math.max(best, temp);
+  });
+  return { current, best };
+}
+
+function renderProfil() {
+  const container = document.getElementById('profilContainer');
+  if (!container) return;
+
+  const watched = library.filter(m => m.status === 'watched');
+  const rated = library.filter(m => m.rating);
+  const avgRating = rated.length ? (rated.reduce((s, m) => s + m.rating, 0) / rated.length).toFixed(1) : '—';
+  const watchlist = library.filter(m => m.status === 'watchlist').length;
+  const favorites = library.filter(m => m.favorite).length;
+
+  const genreCount = {};
+  library.forEach(m => {
+    if (!m.genres) return;
+    m.genres.split(',').map(g => g.trim()).filter(Boolean).forEach(g => { genreCount[g] = (genreCount[g] || 0) + 1; });
+  });
+  const topGenres = Object.entries(genreCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const typeCount = { movie: 0, series: 0, anime: 0, game: 0 };
+  library.forEach(m => { if (typeCount[m.type] !== undefined) typeCount[m.type]++; });
+  const total = library.length;
+
+  const { current: currentStreak, best: bestStreak } = calcStreak();
+
+  const username = localStorage.getItem('lumera_username') || 'Cinéphile';
+  const initials = username.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'L';
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7c3aed';
+  const typeIcon = { movie: '🎬', series: '📺', anime: '✨', game: '🎮' };
+  const typeLabel = { movie: 'Films', series: 'Séries', anime: 'Animés', game: 'Jeux' };
+
+  container.innerHTML = `
+    <div class="profil-header">
+      <div class="profil-avatar" style="background:${accent}">${initials}</div>
+      <div class="profil-header-info">
+        <div class="profil-name" onclick="editProfilName()">${username} <span class="profil-edit-hint">✏️</span></div>
+        <div class="profil-tagline">Membre de Lumèra · ${total} titre${total > 1 ? 's' : ''}</div>
+        ${currentStreak > 0 ? `<div class="profil-streak-badge">🔥 ${currentStreak} jour${currentStreak > 1 ? 's' : ''} de suite</div>` : ''}
+      </div>
+      <button class="btn-primary profil-share-trigger" id="profilShareBtn">📤 Partager</button>
+    </div>
+
+    <div class="profil-stats-grid">
+      <div class="profil-stat-card"><div class="profil-stat-icon">✅</div><div class="profil-stat-val">${watched.length}</div><div class="profil-stat-label">Vus</div></div>
+      <div class="profil-stat-card"><div class="profil-stat-icon">⭐</div><div class="profil-stat-val">${avgRating}</div><div class="profil-stat-label">Note moy.</div></div>
+      <div class="profil-stat-card"><div class="profil-stat-icon">🔖</div><div class="profil-stat-val">${watchlist}</div><div class="profil-stat-label">Watchlist</div></div>
+      <div class="profil-stat-card"><div class="profil-stat-icon">❤️</div><div class="profil-stat-val">${favorites}</div><div class="profil-stat-label">Favoris</div></div>
+      <div class="profil-stat-card"><div class="profil-stat-icon">🔥</div><div class="profil-stat-val">${bestStreak}</div><div class="profil-stat-label">Meilleur streak</div></div>
+    </div>
+
+    ${topGenres.length ? `
+    <div class="profil-section">
+      <div class="profil-section-title">🎭 Genres favoris</div>
+      <div class="profil-genres-row">
+        ${topGenres.map(([g, n], i) => `<div class="profil-genre-pill" style="opacity:${(1 - i * 0.15).toFixed(2)}">${g} <span class="profil-genre-count">×${n}</span></div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${total > 0 ? `
+    <div class="profil-section">
+      <div class="profil-section-title">📊 Répartition</div>
+      <div class="profil-type-bars">
+        ${Object.entries(typeCount).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).map(([type, n]) => `
+          <div class="profil-type-bar-row">
+            <span class="profil-type-bar-label">${typeIcon[type]} ${typeLabel[type]}</span>
+            <div class="profil-type-bar-track"><div class="profil-type-bar-fill" style="width:${Math.round(n / total * 100)}%"></div></div>
+            <span class="profil-type-bar-count">${n}</span>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="profil-section">
+      <div class="profil-section-title">🕐 Dernières activités</div>
+      <div class="profil-recent">
+        ${library.length === 0 ? '<div class="profil-empty">Ajoute des titres pour voir ton activité !</div>' :
+          library.slice().sort((a, b) => b.dateAdded - a.dateAdded).slice(0, 5).map(m => `
+          <div class="profil-recent-item" onclick="openDetail('${m.id}')">
+            ${m.poster ? `<img class="profil-recent-thumb" src="${m.poster}" alt="${m.title}" onerror="this.outerHTML='<div class=profil-recent-thumb-ph>${typeEmoji(m.type)}</div>'" />` : `<div class="profil-recent-thumb-ph">${typeEmoji(m.type)}</div>`}
+            <div class="profil-recent-info">
+              <div class="profil-recent-title">${m.title}</div>
+              <div class="profil-recent-meta">${m.year || ''} ${m.rating ? '· ★ ' + m.rating : ''}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+
+  container.querySelector('#profilShareBtn')?.addEventListener('click', () => shareProfilCard(username, watched.length, avgRating, bestStreak, topGenres));
+}
+window.renderProfil = renderProfil;
+
+function editProfilName() {
+  const name = prompt('Ton nom / pseudo :', localStorage.getItem('lumera_username') || 'Cinéphile');
+  if (name && name.trim()) { localStorage.setItem('lumera_username', name.trim()); renderProfil(); }
+}
+window.editProfilName = editProfilName;
+
+function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 600; canvas.height = 320;
+  const ctx = canvas.getContext('2d');
+
+  const grad = ctx.createLinearGradient(0, 0, 600, 320);
+  grad.addColorStop(0, '#1a0a3a'); grad.addColorStop(1, '#2d1b69');
+  ctx.fillStyle = grad;
+  if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(0, 0, 600, 320, 18); ctx.fill(); }
+  else { ctx.fillRect(0, 0, 600, 320); }
+
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7c3aed';
+  ctx.beginPath(); ctx.arc(530, 55, 110, 0, Math.PI * 2);
+  ctx.fillStyle = accent + '22'; ctx.fill();
+
+  const initials = username.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'L';
+  ctx.beginPath(); ctx.arc(70, 80, 44, 0, Math.PI * 2);
+  ctx.fillStyle = accent; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 24px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText(initials, 70, 88);
+
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 22px system-ui'; ctx.fillStyle = '#fff';
+  ctx.fillText(username, 130, 66);
+  ctx.font = '13px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('Profil Lumèra', 130, 90);
+
+  const stats = [{ icon: '✅', val: watched, label: 'Vus' }, { icon: '⭐', val: avgRating, label: 'Note moy.' }, { icon: '🔥', val: bestStreak, label: 'Meilleur streak' }];
+  stats.forEach((s, i) => {
+    const x = 50 + i * 178, y = 138;
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, 152, 70, 10); ctx.fill(); }
+    else ctx.fillRect(x, y, 152, 70);
+    ctx.font = '20px system-ui'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.fillText(s.icon, x + 76, y + 26);
+    ctx.font = 'bold 18px system-ui'; ctx.fillText(String(s.val), x + 76, y + 48);
+    ctx.font = '10px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText(s.label, x + 76, y + 62);
+  });
+
+  if (topGenres.length) {
+    ctx.textAlign = 'left'; ctx.font = '12px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('Genres favoris :', 50, 248);
+    let gx = 50;
+    topGenres.slice(0, 3).forEach(([g]) => {
+      const w = ctx.measureText(g).width + 20;
+      ctx.fillStyle = accent + '44';
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(gx, 256, w, 22, 7); ctx.fill(); }
+      else ctx.fillRect(gx, 256, w, 22);
+      ctx.fillStyle = '#fff'; ctx.font = '11px system-ui';
+      ctx.fillText(g, gx + 10, 271); gx += w + 7;
+    });
+  }
+
+  ctx.textAlign = 'right'; ctx.font = '10px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillText('lumèra', 585, 310);
+
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a'); a.href = url; a.download = 'lumera-profil.png'; a.click();
+  showToast('📤 Carte de profil téléchargée !');
+}
