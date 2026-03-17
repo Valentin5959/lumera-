@@ -1,0 +1,14 @@
+{
+  "name": "Lumèra",
+  "short_name": "Lumèra",
+  "description": "Suivi personnel de films, séries, animés et jeux vidéo",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f0f14",
+  "theme_color": "#7c3aed",
+  "orientation": "any",
+  "icons": [
+    { "src": "8_1sasa11.jpg", "sizes": "192x192", "type": "image/jpeg" },
+    { "src": "8_1sasa11.jpg", "sizes": "512x512", "type": "image/jpeg" }
+  ]
+}
