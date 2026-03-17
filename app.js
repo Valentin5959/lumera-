@@ -4676,15 +4676,32 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
   }
 })();
 
-// ── SEARCH DROPDOWN (local + TMDB) ───────────────────────────────────────
+// ── SEARCH DROPDOWN (local + TMDB + RAWG) ────────────────────────────────
 (function initSearchDropdown() {
   const input = document.getElementById('globalSearch');
   const dropdown = document.getElementById('searchDropdown');
   if (!input || !dropdown) return;
 
-  let _tmdbTimer = null;
+  let _timer = null;
 
-  function renderDropdown(localResults, tmdbResults, loading) {
+  function openModalPrefilled(data) {
+    openAddModal();
+    requestAnimationFrame(() => {
+      document.getElementById('fTitle').value = data.title || '';
+      document.getElementById('fYear').value = data.year || '';
+      document.getElementById('fPoster').value = data.poster || '';
+      document.getElementById('fSynopsis').value = data.synopsis || '';
+      document.getElementById('fGenres').value = data.genres || '';
+      document.getElementById('fTmdbRating').value = data.vote ? parseFloat(data.vote).toFixed(1) : '';
+      currentType = data.type || 'movie';
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === currentType));
+      updateEpisodeFieldsVisibility();
+      updateSearchBtnLabel();
+      if (data.fetchTrailer) data.fetchTrailer();
+    });
+  }
+
+  function renderDropdown(localResults, tmdbResults, rawgResults, loading) {
     let html = '';
 
     if (localResults.length) {
@@ -4702,27 +4719,50 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
     }
 
     if (loading) {
-      html += '<div class="sdrop-section-label">🌐 TMDB <span class="sdrop-loading">…</span></div>';
-    } else if (tmdbResults && tmdbResults.length) {
-      html += '<div class="sdrop-section-label">🌐 Ajouter depuis TMDB</div>';
-      html += tmdbResults.map(r => {
-        const inLib = library.some(m => m.title === (r.title || r.name));
-        const poster = r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : '';
-        const year = (r.release_date || r.first_air_date || '').slice(0, 4);
-        const type = r.media_type === 'tv' ? 'series' : r.media_type === 'movie' ? 'movie' : 'movie';
-        return `<div class="sdrop-item sdrop-tmdb ${inLib ? 'sdrop-inlib' : ''}"
-          data-tmdb-id="${r.id}" data-title="${(r.title||r.name||'').replace(/"/g,'&quot;')}"
-          data-year="${year}" data-poster="${poster}" data-type="${type}"
-          data-vote="${r.vote_average||''}"
-          data-synopsis="${(r.overview||'').slice(0,300).replace(/"/g,'&quot;')}">
-          ${poster ? `<img class="sdrop-thumb" src="${poster}" onerror="this.style.display='none'" />` : `<div class="sdrop-thumb sdrop-ph">${typeEmoji(type)}</div>`}
-          <div class="sdrop-info">
-            <div class="sdrop-title">${r.title || r.name}</div>
-            <div class="sdrop-meta">${year} · ${r.media_type === 'tv' ? '📺 Série' : '🎬 Film'}${r.vote_average ? ' · ★ '+r.vote_average.toFixed(1) : ''}</div>
-          </div>
-          <span class="sdrop-add-btn" title="${inLib ? 'Déjà dans ta bibliothèque — cliquer pour voir' : 'Cliquer pour ajouter / modifier'}">${inLib ? '✅' : '✏️'}</span>
-        </div>`;
-      }).join('');
+      html += '<div class="sdrop-section-label">🌐 Recherche… <span class="sdrop-loading">…</span></div>';
+    } else {
+      if (tmdbResults && tmdbResults.length) {
+        html += '<div class="sdrop-section-label">🎬 Films & Séries (TMDB)</div>';
+        html += tmdbResults.map(r => {
+          const inLib = library.some(m => m.title === (r.title || r.name));
+          const poster = r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : '';
+          const year = (r.release_date || r.first_air_date || '').slice(0, 4);
+          const type = r.media_type === 'tv' ? 'series' : 'movie';
+          return `<div class="sdrop-item sdrop-tmdb ${inLib ? 'sdrop-inlib' : ''}"
+            data-tmdb-id="${r.id}" data-title="${(r.title||r.name||'').replace(/"/g,'&quot;')}"
+            data-year="${year}" data-poster="${poster}" data-type="${type}"
+            data-vote="${r.vote_average||''}"
+            data-synopsis="${(r.overview||'').slice(0,300).replace(/"/g,'&quot;')}">
+            ${poster ? `<img class="sdrop-thumb" src="${poster}" onerror="this.style.display='none'" />` : `<div class="sdrop-thumb sdrop-ph">${typeEmoji(type)}</div>`}
+            <div class="sdrop-info">
+              <div class="sdrop-title">${r.title || r.name}</div>
+              <div class="sdrop-meta">${year} · ${r.media_type === 'tv' ? '📺 Série' : '🎬 Film'}${r.vote_average ? ' · ★ '+r.vote_average.toFixed(1) : ''}</div>
+            </div>
+            <span class="sdrop-add-btn">${inLib ? '✅' : '✏️'}</span>
+          </div>`;
+        }).join('');
+      }
+
+      if (rawgResults && rawgResults.length) {
+        html += '<div class="sdrop-section-label">🎮 Jeux vidéo (RAWG)</div>';
+        html += rawgResults.map(r => {
+          const inLib = library.some(m => m.title === r.name);
+          const poster = r.background_image || '';
+          const year = (r.released || '').slice(0, 4);
+          const genres = (r.genres || []).slice(0, 2).map(g => g.name).join(', ');
+          return `<div class="sdrop-item sdrop-rawg ${inLib ? 'sdrop-inlib' : ''}"
+            data-rawg-id="${r.id}" data-title="${r.name.replace(/"/g,'&quot;')}"
+            data-year="${year}" data-poster="${poster}" data-type="game"
+            data-vote="${r.rating||''}" data-genres="${genres.replace(/"/g,'&quot;')}">
+            ${poster ? `<img class="sdrop-thumb" src="${poster}" onerror="this.style.display='none'" style="object-position:center top" />` : `<div class="sdrop-thumb sdrop-ph">🎮</div>`}
+            <div class="sdrop-info">
+              <div class="sdrop-title">${r.name}</div>
+              <div class="sdrop-meta">${year}${genres ? ' · '+genres : ''}${r.rating ? ' · ★ '+r.rating.toFixed(1) : ''}</div>
+            </div>
+            <span class="sdrop-add-btn">${inLib ? '✅' : '✏️'}</span>
+          </div>`;
+        }).join('');
+      }
     }
 
     if (!html) { dropdown.classList.add('hidden'); return; }
@@ -4738,35 +4778,51 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
       });
     });
 
-    // TMDB item click → open add modal pre-filled (or edit if already in lib)
+    // TMDB item click → open add modal pre-filled
     dropdown.querySelectorAll('.sdrop-tmdb').forEach(el => {
       el.addEventListener('mousedown', ev => {
         ev.preventDefault();
         dropdown.classList.add('hidden'); input.value = '';
         const inLib = library.find(m => m.title === el.dataset.title);
         if (inLib) { openDetail(inLib.id); return; }
-        // Open add modal then pre-fill with TMDB data
-        openAddModal();
-        requestAnimationFrame(() => {
-          document.getElementById('fTitle').value = el.dataset.title;
-          document.getElementById('fYear').value = el.dataset.year;
-          document.getElementById('fPoster').value = el.dataset.poster;
-          document.getElementById('fSynopsis').value = el.dataset.synopsis;
-          document.getElementById('fTmdbRating').value = el.dataset.vote ? parseFloat(el.dataset.vote).toFixed(1) : '';
-          currentType = el.dataset.type;
-          document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === currentType));
-          updateEpisodeFieldsVisibility();
-          updateSearchBtnLabel();
-          // Fetch trailer automatically
-          const key = localStorage.getItem('lumera_tmdb_key');
-          const tmdbId = el.dataset.tmdbId;
-          const mtype = el.dataset.type === 'series' ? 'tv' : 'movie';
-          if (key && tmdbId) {
-            fetch(`https://api.themoviedb.org/3/${mtype}/${tmdbId}/videos?api_key=${key}&language=fr-FR`)
+        const tmdbKey = localStorage.getItem('lumera_tmdb_key');
+        const tmdbId = el.dataset.tmdbId;
+        const mtype = el.dataset.type === 'series' ? 'tv' : 'movie';
+        openModalPrefilled({
+          title: el.dataset.title, year: el.dataset.year,
+          poster: el.dataset.poster, synopsis: el.dataset.synopsis,
+          vote: el.dataset.vote, type: el.dataset.type,
+          fetchTrailer: () => {
+            if (!tmdbKey || !tmdbId) return;
+            fetch(`https://api.themoviedb.org/3/${mtype}/${tmdbId}/videos?api_key=${tmdbKey}&language=fr-FR`)
               .then(r => r.json()).then(vData => {
-                let trailer = (vData.results||[]).find(v => v.type==='Trailer' && v.site==='YouTube' && v.iso_639_1==='fr');
-                if (!trailer) trailer = (vData.results||[]).find(v => v.type==='Trailer' && v.site==='YouTube');
-                if (trailer) document.getElementById('fTrailer').value = `https://www.youtube.com/watch?v=${trailer.key}`;
+                let t = (vData.results||[]).find(v => v.type==='Trailer' && v.site==='YouTube' && v.iso_639_1==='fr');
+                if (!t) t = (vData.results||[]).find(v => v.type==='Trailer' && v.site==='YouTube');
+                if (t) document.getElementById('fTrailer').value = `https://www.youtube.com/watch?v=${t.key}`;
+              }).catch(()=>{});
+          }
+        });
+      });
+    });
+
+    // RAWG item click → open add modal pre-filled
+    dropdown.querySelectorAll('.sdrop-rawg').forEach(el => {
+      el.addEventListener('mousedown', ev => {
+        ev.preventDefault();
+        dropdown.classList.add('hidden'); input.value = '';
+        const inLib = library.find(m => m.title === el.dataset.title);
+        if (inLib) { openDetail(inLib.id); return; }
+        const rawgKey = localStorage.getItem('lumera_rawg_key');
+        const rawgId = el.dataset.rawgId;
+        openModalPrefilled({
+          title: el.dataset.title, year: el.dataset.year,
+          poster: el.dataset.poster, genres: el.dataset.genres,
+          vote: el.dataset.vote, type: 'game',
+          fetchTrailer: () => {
+            if (!rawgKey || !rawgId) return;
+            fetch(`https://api.rawg.io/api/games/${rawgId}?key=${rawgKey}`)
+              .then(r => r.json()).then(detail => {
+                if (detail.description_raw) document.getElementById('fSynopsis').value = detail.description_raw.slice(0, 800);
               }).catch(()=>{});
           }
         });
@@ -4776,14 +4832,16 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
 
   input.addEventListener('input', e => {
     const q = e.target.value.trim();
-    if (!q || q.length < 2) { dropdown.classList.add('hidden'); clearTimeout(_tmdbTimer); return; }
+    if (!q || q.length < 2) { dropdown.classList.add('hidden'); clearTimeout(_timer); return; }
 
     const localResults = library.filter(m =>
       m.title.toLowerCase().includes(q.toLowerCase()) || (m.genres || '').toLowerCase().includes(q.toLowerCase())
     ).slice(0, 4);
 
-    const key = localStorage.getItem('lumera_tmdb_key');
-    if (!key) {
+    const tmdbKey = localStorage.getItem('lumera_tmdb_key');
+    const rawgKey = localStorage.getItem('lumera_rawg_key');
+
+    if (!tmdbKey && !rawgKey) {
       let html = '';
       if (localResults.length) {
         html += '<div class="sdrop-section-label">📚 Ma bibliothèque</div>';
@@ -4795,7 +4853,7 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
           </div>`;
         }).join('');
       }
-      html += `<div class="sdrop-no-key">🔑 <span onclick="document.getElementById('openAddModal').click();document.getElementById('tmdbSearchBtn').click()" style="cursor:pointer;text-decoration:underline">Configure ta clé TMDB</span> pour la recherche avancée</div>`;
+      html += `<div class="sdrop-no-key">🔑 <span onclick="document.getElementById('openAddModal').click();document.getElementById('tmdbSearchBtn').click()" style="cursor:pointer;text-decoration:underline">Configure ta clé TMDB / RAWG</span> pour la recherche avancée</div>`;
       dropdown.innerHTML = html;
       dropdown.classList.remove('hidden');
       dropdown.querySelectorAll('.sdrop-item[data-local]').forEach(el => {
@@ -4804,20 +4862,22 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
       return;
     }
 
-    renderDropdown(localResults, [], true);
+    renderDropdown(localResults, [], [], true);
 
-    clearTimeout(_tmdbTimer);
-    _tmdbTimer = setTimeout(async () => {
-      try {
-        const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${key}&language=fr-FR&query=${encodeURIComponent(q)}&page=1`);
-        const data = await res.json();
-        const tmdb = (data.results || [])
-          .filter(r => r.media_type !== 'person' && (r.title || r.name))
-          .slice(0, 5);
-        renderDropdown(localResults, tmdb, false);
-      } catch(err) {
-        renderDropdown(localResults, [], false);
-      }
+    clearTimeout(_timer);
+    _timer = setTimeout(async () => {
+      let tmdbResults = [], rawgResults = [];
+      await Promise.all([
+        tmdbKey ? fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&language=fr-FR&query=${encodeURIComponent(q)}&page=1`)
+          .then(r => r.json())
+          .then(data => { tmdbResults = (data.results||[]).filter(r => r.media_type !== 'person' && (r.title||r.name)).slice(0,5); })
+          .catch(()=>{}) : Promise.resolve(),
+        rawgKey ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&search=${encodeURIComponent(q)}&page_size=3`)
+          .then(r => r.json())
+          .then(data => { rawgResults = (data.results||[]).slice(0,3); })
+          .catch(()=>{}) : Promise.resolve()
+      ]);
+      renderDropdown(localResults, tmdbResults, rawgResults, false);
     }, 350);
   });
 
