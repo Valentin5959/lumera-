@@ -2545,16 +2545,16 @@ body.season-winter .hero { background: linear-gradient(135deg, var(--bg) 60%, rg
 
 /* ── AURORA BACKGROUND ── */
 .aurora-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.aurora-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.18; }
-.aurora-1 { width: 60vw; height: 60vw; background: radial-gradient(circle, #7c3aed, transparent 70%); top: -15%; left: -10%; animation: aurora-drift1 18s infinite alternate ease-in-out; }
-.aurora-2 { width: 50vw; height: 50vw; background: radial-gradient(circle, #a855f7, transparent 70%); top: 30%; right: -10%; animation: aurora-drift2 22s infinite alternate ease-in-out; }
-.aurora-3 { width: 40vw; height: 40vw; background: radial-gradient(circle, #2563eb, transparent 70%); bottom: -10%; left: 20%; animation: aurora-drift3 26s infinite alternate ease-in-out; }
-.aurora-4 { width: 35vw; height: 35vw; background: radial-gradient(circle, #ec4899, transparent 70%); top: 10%; right: 30%; animation: aurora-drift4 20s infinite alternate ease-in-out; opacity: 0.1; }
+.aurora-blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.35; }
+.aurora-1 { width: 70vw; height: 70vw; background: radial-gradient(circle, #7c3aed, transparent 70%); top: -15%; left: -10%; animation: aurora-drift1 18s infinite alternate ease-in-out; }
+.aurora-2 { width: 55vw; height: 55vw; background: radial-gradient(circle, #a855f7, transparent 70%); top: 30%; right: -10%; animation: aurora-drift2 22s infinite alternate ease-in-out; }
+.aurora-3 { width: 45vw; height: 45vw; background: radial-gradient(circle, #2563eb, transparent 70%); bottom: -10%; left: 20%; animation: aurora-drift3 26s infinite alternate ease-in-out; }
+.aurora-4 { width: 40vw; height: 40vw; background: radial-gradient(circle, #ec4899, transparent 70%); top: 10%; right: 30%; animation: aurora-drift4 20s infinite alternate ease-in-out; opacity: 0.2; }
 @keyframes aurora-drift1 { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(8vw,12vh) scale(1.1); } 100% { transform: translate(-5vw,20vh) scale(0.95); } }
 @keyframes aurora-drift2 { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(-10vw,-8vh) scale(1.15); } 100% { transform: translate(5vw,15vh) scale(0.9); } }
 @keyframes aurora-drift3 { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(12vw,-10vh) scale(1.05); } 100% { transform: translate(-8vw,-5vh) scale(1.1); } }
 @keyframes aurora-drift4 { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(-6vw,10vh) scale(0.9); } 100% { transform: translate(10vw,-8vh) scale(1.2); } }
-body:not(.dark) .aurora-blob { opacity: 0.05; }
+body:not(.dark) .aurora-blob { opacity: 0.15; }
 .navbar, .main-content, .page, .modal-overlay, .detail-overlay { position: relative; z-index: 1; }
 
 /* ── RECOMMANDATIONS TMDB ── */
