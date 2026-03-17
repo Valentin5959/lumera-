@@ -4777,7 +4777,26 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
     ).slice(0, 4);
 
     const key = localStorage.getItem('lumera_tmdb_key');
-    if (!key) { renderDropdown(localResults, [], false); return; }
+    if (!key) {
+      let html = '';
+      if (localResults.length) {
+        html += '<div class="sdrop-section-label">📚 Ma bibliothèque</div>';
+        html += localResults.map(m => {
+          const statusText = { watched:'Vu', watching:'En cours', watchlist:'Watchlist', dropped:'Abandonné' }[m.status] || m.status;
+          return `<div class="sdrop-item" data-id="${m.id}" data-local="1">
+            ${m.poster ? `<img class="sdrop-thumb" src="${m.poster}" onerror="this.style.display='none'" />` : `<div class="sdrop-thumb sdrop-ph">${typeEmoji(m.type)}</div>`}
+            <div class="sdrop-info"><div class="sdrop-title">${m.title}</div><div class="sdrop-meta">${m.year||''} · ${statusText}</div></div>
+          </div>`;
+        }).join('');
+      }
+      html += `<div class="sdrop-no-key">🔑 <span onclick="document.getElementById('openAddModal').click();document.getElementById('tmdbSearchBtn').click()" style="cursor:pointer;text-decoration:underline">Configure ta clé TMDB</span> pour la recherche avancée</div>`;
+      dropdown.innerHTML = html;
+      dropdown.classList.remove('hidden');
+      dropdown.querySelectorAll('.sdrop-item[data-local]').forEach(el => {
+        el.addEventListener('mousedown', ev => { ev.preventDefault(); dropdown.classList.add('hidden'); input.value=''; searchQuery=''; openDetail(el.dataset.id); });
+      });
+      return;
+    }
 
     renderDropdown(localResults, [], true);
 

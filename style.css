@@ -2512,6 +2512,7 @@ body.season-winter .hero { background: linear-gradient(135deg, var(--bg) 60%, rg
 .sdrop-add-btn:hover { background: var(--accent); color: #fff; }
 .sdrop-add-btn:disabled { opacity: 0.5; cursor: default; }
 
+.sdrop-no-key { font-size: 0.75rem; color: var(--text-muted); padding: 0.65rem 0.9rem; border-top: 1px solid var(--border); }
 .top-cast-section { margin-bottom: 1.5rem; }
 .top-cast-title { font-size: 0.9rem; font-weight: 700; color: var(--text-sub); margin-bottom: 0.8rem; }
 .top-cast-grid { display: flex; gap: 0.7rem; flex-wrap: wrap; }
