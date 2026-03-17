@@ -2505,6 +2505,12 @@ body.season-winter .hero { background: linear-gradient(135deg, var(--bg) 60%, rg
 .sdrop-ph { background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
 .sdrop-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
 .sdrop-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.1rem; }
+.sdrop-section-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); padding: 0.45rem 0.9rem 0.2rem; text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg); position: sticky; top: 0; }
+.sdrop-tmdb { position: relative; }
+.sdrop-inlib { opacity: 0.55; }
+.sdrop-add-btn { margin-left: auto; flex-shrink: 0; background: var(--accent-soft); border: 1.5px solid var(--accent); color: var(--accent); width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.sdrop-add-btn:hover { background: var(--accent); color: #fff; }
+.sdrop-add-btn:disabled { opacity: 0.5; cursor: default; }
 
 .top-cast-section { margin-bottom: 1.5rem; }
 .top-cast-title { font-size: 0.9rem; font-weight: 700; color: var(--text-sub); margin-bottom: 0.8rem; }

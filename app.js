@@ -4663,49 +4663,134 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
   }
 })();
 
-// ── SEARCH DROPDOWN ───────────────────────────────────────────────────────
+// ── SEARCH DROPDOWN (local + TMDB) ───────────────────────────────────────
 (function initSearchDropdown() {
   const input = document.getElementById('globalSearch');
   const dropdown = document.getElementById('searchDropdown');
   if (!input || !dropdown) return;
 
-  input.addEventListener('input', e => {
-    const q = e.target.value.trim().toLowerCase();
-    if (!q || q.length < 2) { dropdown.classList.add('hidden'); return; }
-    const results = library.filter(m =>
-      m.title.toLowerCase().includes(q) || (m.genres || '').toLowerCase().includes(q)
-    ).slice(0, 6);
-    if (!results.length) { dropdown.classList.add('hidden'); return; }
-    dropdown.innerHTML = results.map(m => {
-      const statusText = { watched: 'Vu', watching: 'En cours', watchlist: 'Watchlist', dropped: 'Abandonné' }[m.status] || m.status;
-      return `<div class="sdrop-item" data-id="${m.id}">
-        ${m.poster ? `<img class="sdrop-thumb" src="${m.poster}" onerror="this.style.display='none'" />` : `<div class="sdrop-thumb sdrop-ph">${typeEmoji(m.type)}</div>`}
-        <div class="sdrop-info">
-          <div class="sdrop-title">${m.title}</div>
-          <div class="sdrop-meta">${m.year || ''} · ${statusText}</div>
-        </div>
-      </div>`;
-    }).join('');
+  let _tmdbTimer = null;
+
+  function renderDropdown(localResults, tmdbResults, loading) {
+    let html = '';
+
+    if (localResults.length) {
+      html += '<div class="sdrop-section-label">📚 Ma bibliothèque</div>';
+      html += localResults.map(m => {
+        const statusText = { watched:'Vu', watching:'En cours', watchlist:'Watchlist', dropped:'Abandonné' }[m.status] || m.status;
+        return `<div class="sdrop-item" data-id="${m.id}" data-local="1">
+          ${m.poster ? `<img class="sdrop-thumb" src="${m.poster}" onerror="this.style.display='none'" />` : `<div class="sdrop-thumb sdrop-ph">${typeEmoji(m.type)}</div>`}
+          <div class="sdrop-info">
+            <div class="sdrop-title">${m.title}</div>
+            <div class="sdrop-meta">${m.year || ''} · ${statusText}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    if (loading) {
+      html += '<div class="sdrop-section-label">🌐 TMDB <span class="sdrop-loading">…</span></div>';
+    } else if (tmdbResults && tmdbResults.length) {
+      html += '<div class="sdrop-section-label">🌐 Ajouter depuis TMDB</div>';
+      html += tmdbResults.map(r => {
+        const inLib = library.some(m => m.title === (r.title || r.name));
+        const poster = r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : '';
+        const year = (r.release_date || r.first_air_date || '').slice(0, 4);
+        const type = r.media_type === 'tv' ? 'series' : r.media_type === 'movie' ? 'movie' : 'movie';
+        return `<div class="sdrop-item sdrop-tmdb ${inLib ? 'sdrop-inlib' : ''}"
+          data-tmdb-id="${r.id}" data-title="${(r.title||r.name||'').replace(/"/g,'&quot;')}"
+          data-year="${year}" data-poster="${poster}" data-type="${type}"
+          data-synopsis="${(r.overview||'').slice(0,300).replace(/"/g,'&quot;')}">
+          ${poster ? `<img class="sdrop-thumb" src="${poster}" onerror="this.style.display='none'" />` : `<div class="sdrop-thumb sdrop-ph">${typeEmoji(type)}</div>`}
+          <div class="sdrop-info">
+            <div class="sdrop-title">${r.title || r.name}</div>
+            <div class="sdrop-meta">${year} · ${r.media_type === 'tv' ? '📺 Série' : '🎬 Film'}${r.vote_average ? ' · ★ '+r.vote_average.toFixed(1) : ''}</div>
+          </div>
+          <button class="sdrop-add-btn" title="${inLib ? 'Déjà dans ta bibliothèque' : 'Ajouter en watchlist'}">${inLib ? '✅' : '＋'}</button>
+        </div>`;
+      }).join('');
+    }
+
+    if (!html) { dropdown.classList.add('hidden'); return; }
+    dropdown.innerHTML = html;
     dropdown.classList.remove('hidden');
-    dropdown.querySelectorAll('.sdrop-item').forEach(el => {
+
+    // Local item click → open detail
+    dropdown.querySelectorAll('.sdrop-item[data-local]').forEach(el => {
       el.addEventListener('mousedown', ev => {
         ev.preventDefault();
-        dropdown.classList.add('hidden');
-        input.value = ''; searchQuery = '';
+        dropdown.classList.add('hidden'); input.value = ''; searchQuery = '';
         openDetail(el.dataset.id);
       });
     });
+
+    // TMDB add button
+    dropdown.querySelectorAll('.sdrop-tmdb .sdrop-add-btn').forEach(btn => {
+      btn.addEventListener('mousedown', ev => {
+        ev.preventDefault();
+        const el = btn.closest('.sdrop-tmdb');
+        if (library.some(m => m.title === el.dataset.title)) { showToast('Déjà dans ta bibliothèque', 'error'); return; }
+        library.unshift({
+          id: uid(), title: el.dataset.title, type: el.dataset.type,
+          status: 'watchlist', year: parseInt(el.dataset.year) || null,
+          poster: el.dataset.poster, synopsis: el.dataset.synopsis,
+          tmdbId: el.dataset.tmdbId,
+          genres: '', rating: null, review: '', favorite: false,
+          trailer: null, tags: [], dateAdded: Date.now()
+        });
+        save(); logAction('added', el.dataset.title); updateMiniWidget();
+        btn.textContent = '✅'; btn.disabled = true;
+        showToast(`📋 ${el.dataset.title} ajouté en watchlist !`);
+      });
+    });
+
+    // TMDB item click (not on button) → open detail if in lib, else add form
+    dropdown.querySelectorAll('.sdrop-tmdb').forEach(el => {
+      el.addEventListener('mousedown', ev => {
+        if (ev.target.classList.contains('sdrop-add-btn')) return;
+        ev.preventDefault();
+        const inLib = library.find(m => m.title === el.dataset.title);
+        if (inLib) { dropdown.classList.add('hidden'); input.value = ''; openDetail(inLib.id); }
+      });
+    });
+  }
+
+  input.addEventListener('input', e => {
+    const q = e.target.value.trim();
+    if (!q || q.length < 2) { dropdown.classList.add('hidden'); clearTimeout(_tmdbTimer); return; }
+
+    const localResults = library.filter(m =>
+      m.title.toLowerCase().includes(q.toLowerCase()) || (m.genres || '').toLowerCase().includes(q.toLowerCase())
+    ).slice(0, 4);
+
+    const key = localStorage.getItem('lumera_tmdb_key');
+    if (!key) { renderDropdown(localResults, [], false); return; }
+
+    renderDropdown(localResults, [], true);
+
+    clearTimeout(_tmdbTimer);
+    _tmdbTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${key}&language=fr-FR&query=${encodeURIComponent(q)}&page=1`);
+        const data = await res.json();
+        const tmdb = (data.results || [])
+          .filter(r => r.media_type !== 'person' && (r.title || r.name))
+          .slice(0, 5);
+        renderDropdown(localResults, tmdb, false);
+      } catch(err) {
+        renderDropdown(localResults, [], false);
+      }
+    }, 350);
   });
 
   document.addEventListener('click', e => {
-    if (!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden');
-  });
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { dropdown.classList.add('hidden'); input.blur(); }
-    if (e.key === 'Enter') {
-      const first = dropdown.querySelector('.sdrop-item');
-      if (first) { dropdown.classList.add('hidden'); input.value = ''; searchQuery = ''; openDetail(first.dataset.id); }
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
     }
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { dropdown.classList.add('hidden'); input.blur(); clearTimeout(_tmdbTimer); }
   });
 })();
 
