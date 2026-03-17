@@ -2101,6 +2101,7 @@ function openDetail(id) {
         <button class="btn-danger" onclick="deleteItem('${id}')">🗑️ Supprimer</button>
       </div>
       <div id="aiAnalysis" class="ai-analysis hidden"></div>
+      <div id="detailRecos" class="detail-recos"></div>
       <div id="rewatchSection"></div>
     </div>
   `;
@@ -2111,9 +2112,134 @@ function openDetail(id) {
 
   // Render re-watch log
   renderRewatchLog(id);
+
+  // Render TMDB recommendations
+  renderDetailRecos(item);
 }
 
 function closeDetail() { document.getElementById('detailOverlay').classList.add('hidden'); }
+
+// ── RECOMMANDATIONS TMDB ───────────────────────────────────────────────────
+async function renderDetailRecos(item) {
+  const el = document.getElementById('detailRecos');
+  if (!el || !item.tmdbId) return;
+  const key = localStorage.getItem('lumera_tmdb_key');
+  if (!key) return;
+  const mtype = item.type === 'series' ? 'tv' : 'movie';
+  try {
+    const res = await fetch(`https://api.themoviedb.org/3/${mtype}/${item.tmdbId}/recommendations?api_key=${key}&language=fr-FR&page=1`);
+    const data = await res.json();
+    const recos = (data.results || []).filter(r => r.poster_path).slice(0, 8);
+    if (!recos.length) return;
+    el.innerHTML = `
+      <h4 class="detail-recos-title">🎯 Tu pourrais aussi aimer</h4>
+      <div class="detail-recos-grid">
+        ${recos.map(r => {
+          const poster = `https://image.tmdb.org/t/p/w154${r.poster_path}`;
+          const year = (r.release_date || r.first_air_date || '').slice(0, 4);
+          const inLib = library.some(m => m.title === (r.title || r.name));
+          const rtype = r.media_type === 'tv' ? 'series' : 'movie';
+          return `<div class="detail-reco-card ${inLib ? 'reco-inlib' : ''}"
+            data-title="${(r.title||r.name||'').replace(/"/g,'&quot;')}"
+            data-year="${year}" data-poster="https://image.tmdb.org/t/p/w500${r.poster_path}"
+            data-type="${rtype}" data-synopsis="${(r.overview||'').slice(0,300).replace(/"/g,'&quot;')}"
+            data-vote="${r.vote_average||''}" data-tmdb-id="${r.id}">
+            <img src="${poster}" class="reco-poster" loading="lazy" onerror="this.style.display='none'" />
+            <div class="reco-info">
+              <div class="reco-title">${r.title || r.name}</div>
+              <div class="reco-meta">${year}${r.vote_average ? ' · ★'+r.vote_average.toFixed(1) : ''}</div>
+            </div>
+            ${inLib ? '<span class="reco-badge">✅</span>' : '<span class="reco-badge reco-add">+</span>'}
+          </div>`;
+        }).join('')}
+      </div>`;
+    el.querySelectorAll('.detail-reco-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const inLib = library.find(m => m.title === card.dataset.title);
+        if (inLib) { closeDetail(); openDetail(inLib.id); return; }
+        openAddModal();
+        requestAnimationFrame(() => {
+          document.getElementById('fTitle').value = card.dataset.title;
+          document.getElementById('fYear').value = card.dataset.year;
+          document.getElementById('fPoster').value = card.dataset.poster;
+          document.getElementById('fSynopsis').value = card.dataset.synopsis;
+          document.getElementById('fTmdbRating').value = card.dataset.vote ? parseFloat(card.dataset.vote).toFixed(1) : '';
+          currentType = card.dataset.type;
+          document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === currentType));
+          updateEpisodeFieldsVisibility(); updateSearchBtnLabel();
+        });
+      });
+    });
+  } catch(e) {}
+}
+
+// ── CALENDRIER DE VISIONNAGE ───────────────────────────────────────────────
+function renderWatchCalendar() {
+  const el = document.getElementById('statsCalendar');
+  if (!el) return;
+  const dated = library.filter(m => m.watchDate || m.dateAdded);
+  if (!dated.length) { el.innerHTML = ''; return; }
+
+  const now = new Date();
+  const year = el.dataset.calYear ? parseInt(el.dataset.calYear) : now.getFullYear();
+  const month = el.dataset.calMonth !== undefined ? parseInt(el.dataset.calMonth) : now.getMonth();
+
+  const dayMap = {};
+  dated.forEach(m => {
+    const d = m.watchDate ? new Date(m.watchDate) : new Date(m.dateAdded);
+    if (isNaN(d)) return;
+    const dk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (!dayMap[dk]) dayMap[dk] = [];
+    dayMap[dk].push(m);
+  });
+
+  const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startDow = (firstDay.getDay() + 6) % 7;
+
+  let cells = '';
+  for (let i = 0; i < startDow; i++) cells += '<div class="cal-cell cal-empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dk = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const items = dayMap[dk] || [];
+    const today = now.getFullYear() === year && now.getMonth() === month && now.getDate() === d;
+    cells += `<div class="cal-cell ${items.length ? 'cal-has-items' : ''} ${today ? 'cal-today' : ''}">
+      <span class="cal-day-num">${d}</span>
+      ${items.length ? `<div class="cal-thumbs">${items.slice(0,2).map(m =>
+        m.poster ? `<img src="${m.poster}" class="cal-thumb-img" title="${m.title}" onerror="this.style.display='none'" />`
+        : `<span class="cal-thumb-emoji">${typeEmoji(m.type)}</span>`
+      ).join('')}${items.length > 2 ? `<span class="cal-thumb-more">+${items.length-2}</span>` : ''}</div>` : ''}
+    </div>`;
+  }
+
+  el.dataset.calYear = year;
+  el.dataset.calMonth = month;
+  el.innerHTML = `
+    <h3 style="margin-bottom:1rem">📅 Calendrier de visionnage</h3>
+    <div class="cal-wrap">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calNav(-1)">‹</button>
+        <span class="cal-month-label">${monthNames[month]} ${year}</span>
+        <button class="cal-nav" onclick="calNav(1)">›</button>
+      </div>
+      <div class="cal-days-header">
+        ${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>`<span>${d}</span>`).join('')}
+      </div>
+      <div class="cal-grid">${cells}</div>
+    </div>`;
+}
+
+window.calNav = function(dir) {
+  const el = document.getElementById('statsCalendar');
+  if (!el) return;
+  let month = parseInt(el.dataset.calMonth) + dir;
+  let year = parseInt(el.dataset.calYear);
+  if (month < 0) { month = 11; year--; }
+  if (month > 11) { month = 0; year++; }
+  el.dataset.calMonth = month; el.dataset.calYear = year;
+  renderWatchCalendar();
+};
 
 // ── ANALYSE IA ─────────────────────────────────────────────────────────────
 const AI_WORKER = 'https://lumera-ai.valentindarras33.workers.dev';
@@ -5094,12 +5220,13 @@ function renderYearDistribution() {
 }
 window.renderYearDistribution = renderYearDistribution;
 
-// Hook renderYearDistribution + renderTopCast into renderStats
+// Hook renderYearDistribution + renderTopCast + calendar into renderStats
 const _origRenderStats2 = renderStats;
 if (typeof _origRenderStats2 === 'function') {
   renderStats = function() {
     _origRenderStats2();
     renderYearDistribution();
     renderTopCast();
+    renderWatchCalendar();
   };
 }
