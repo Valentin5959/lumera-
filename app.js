@@ -2386,13 +2386,26 @@ document.querySelectorAll('[data-wl-filter]').forEach(btn => {
   });
 });
 
-// Search
+// Search — dropdown handles live results; Enter still filters library
+document.getElementById('globalSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const q = e.target.value.trim();
+    if (!q) return;
+    searchQuery = q;
+    document.getElementById('searchDropdown')?.classList.add('hidden');
+    const active = document.querySelector('.page.active');
+    const id = active?.id.replace('page-', '');
+    if (id === 'library') renderLibrary();
+    else showPage('library');
+  }
+});
+// Clear library filter when search is cleared
 document.getElementById('globalSearch').addEventListener('input', e => {
-  searchQuery = e.target.value.trim();
-  const active = document.querySelector('.page.active');
-  const id = active?.id.replace('page-', '');
-  if (id === 'library') renderLibrary();
-  else showPage('library');
+  if (!e.target.value.trim()) {
+    searchQuery = '';
+    const id = document.querySelector('.page.active')?.id.replace('page-', '');
+    if (id === 'library') renderLibrary();
+  }
 });
 
 // Theme toggle — cycle light → dark → neon
