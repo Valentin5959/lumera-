@@ -4648,3 +4648,214 @@ function shareProfilCard(username, watched, avgRating, bestStreak, topGenres) {
   const a = document.createElement('a'); a.href = url; a.download = 'lumera-profil.png'; a.click();
   showToast('📤 Carte de profil téléchargée !');
 }
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+/*  BATCH 6 — PWA · Search · Deep Links · Dark Auto · Notifs · Stats         */
+/* ══════════════════════════════════════════════════════════════════════════ */
+
+// ── OS DARK MODE AUTO ─────────────────────────────────────────────────────
+(function initOsTheme() {
+  if (localStorage.getItem('lumera_theme_mode')) return;
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches && themeMode === 'light') {
+    themeMode = 'dark'; isDark = true;
+    localStorage.setItem('lumera_theme_mode', 'dark');
+    if (typeof applyTheme === 'function') applyTheme();
+  }
+})();
+
+// ── SEARCH DROPDOWN ───────────────────────────────────────────────────────
+(function initSearchDropdown() {
+  const input = document.getElementById('globalSearch');
+  const dropdown = document.getElementById('searchDropdown');
+  if (!input || !dropdown) return;
+
+  input.addEventListener('input', e => {
+    const q = e.target.value.trim().toLowerCase();
+    if (!q || q.length < 2) { dropdown.classList.add('hidden'); return; }
+    const results = library.filter(m =>
+      m.title.toLowerCase().includes(q) || (m.genres || '').toLowerCase().includes(q)
+    ).slice(0, 6);
+    if (!results.length) { dropdown.classList.add('hidden'); return; }
+    dropdown.innerHTML = results.map(m => {
+      const statusText = { watched: 'Vu', watching: 'En cours', watchlist: 'Watchlist', dropped: 'Abandonné' }[m.status] || m.status;
+      return `<div class="sdrop-item" data-id="${m.id}">
+        ${m.poster ? `<img class="sdrop-thumb" src="${m.poster}" onerror="this.style.display='none'" />` : `<div class="sdrop-thumb sdrop-ph">${typeEmoji(m.type)}</div>`}
+        <div class="sdrop-info">
+          <div class="sdrop-title">${m.title}</div>
+          <div class="sdrop-meta">${m.year || ''} · ${statusText}</div>
+        </div>
+      </div>`;
+    }).join('');
+    dropdown.classList.remove('hidden');
+    dropdown.querySelectorAll('.sdrop-item').forEach(el => {
+      el.addEventListener('mousedown', ev => {
+        ev.preventDefault();
+        dropdown.classList.add('hidden');
+        input.value = ''; searchQuery = '';
+        openDetail(el.dataset.id);
+      });
+    });
+  });
+
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden');
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { dropdown.classList.add('hidden'); input.blur(); }
+    if (e.key === 'Enter') {
+      const first = dropdown.querySelector('.sdrop-item');
+      if (first) { dropdown.classList.add('hidden'); input.value = ''; searchQuery = ''; openDetail(first.dataset.id); }
+    }
+  });
+})();
+
+// ── DEEP LINKS ────────────────────────────────────────────────────────────
+(function initDeepLinks() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#item-')) {
+    const id = hash.slice(6);
+    setTimeout(() => { if (library.find(m => m.id === id)) openDetail(id); }, 500);
+  }
+})();
+
+function copyItemLink(id) {
+  const url = window.location.href.split('#')[0] + '#item-' + id;
+  navigator.clipboard.writeText(url).then(() => showToast('🔗 Lien copié !')).catch(() => showToast('Erreur copie', 'error'));
+}
+window.copyItemLink = copyItemLink;
+
+// ── STREAK NOTIFICATIONS ──────────────────────────────────────────────────
+function initStreakNotifications() {
+  if (!('Notification' in window)) { showToast('Notifications non supportées', 'error'); return; }
+  Notification.requestPermission().then(perm => {
+    if (perm !== 'granted') { showToast('Notifications refusées', 'error'); return; }
+    localStorage.setItem('lumera_notif', '1');
+    showToast('🔔 Rappels activés !');
+  });
+}
+window.initStreakNotifications = initStreakNotifications;
+
+(function checkStreakNotif() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (localStorage.getItem('lumera_notif') !== '1') return;
+  const last = library.length ? Math.max(...library.map(m => m.dateAdded || 0)) : 0;
+  if (!last) return;
+  const daysSince = (Date.now() - last) / 86400000;
+  if (daysSince >= 2) {
+    new Notification('🎬 Lumèra te manque !', {
+      body: `Rien depuis ${Math.floor(daysSince)} jours. Ton streak t'attend ! 🔥`,
+      icon: './8_1sasa11.jpg'
+    });
+  }
+})();
+
+(function addNotifBtn() {
+  const grid = document.querySelector('.tools-panel-grid');
+  if (!grid || grid.querySelector('#notifBtn')) return;
+  const btn = document.createElement('button');
+  btn.className = 'tool-btn'; btn.id = 'notifBtn';
+  btn.innerHTML = '<span class="tool-icon">🔔</span>Rappels';
+  btn.addEventListener('click', initStreakNotifications);
+  grid.appendChild(btn);
+})();
+
+// ── B. TOP ACTEURS / RÉALISATEURS ─────────────────────────────────────────
+async function renderTopCast() {
+  const key = localStorage.getItem('lumera_tmdb_key');
+  const el = document.getElementById('statsTop');
+  if (!el) return;
+  if (!key) {
+    el.innerHTML = '<div class="top-cast-empty">Configure ta clé TMDB pour voir le top acteurs / réalisateurs.</div>';
+    return;
+  }
+  const movies = library.filter(m => m.type === 'movie' && m.status === 'watched' && m.tmdbId);
+  if (movies.length === 0) {
+    el.innerHTML = '<div class="top-cast-empty">Ajoute des films via la recherche TMDB pour voir tes acteurs préférés.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="top-cast-empty">⏳ Analyse des crédits…</div>';
+
+  const actorMap = {}, dirMap = {};
+  await Promise.all(movies.slice(0, 12).map(async m => {
+    try {
+      const r = await fetch(`https://api.themoviedb.org/3/movie/${m.tmdbId}/credits?api_key=${key}&language=fr-FR`);
+      const d = await r.json();
+      (d.cast || []).slice(0, 5).forEach(a => {
+        if (!actorMap[a.name]) actorMap[a.name] = { count: 0, img: a.profile_path };
+        actorMap[a.name].count++;
+      });
+      (d.crew || []).filter(c => c.job === 'Director').forEach(dir => {
+        if (!dirMap[dir.name]) dirMap[dir.name] = { count: 0, img: dir.profile_path };
+        dirMap[dir.name].count++;
+      });
+    } catch(e) {}
+  }));
+
+  function card([name, data]) {
+    const img = data.img ? `https://image.tmdb.org/t/p/w92${data.img}` : '';
+    return `<div class="top-person-card">
+      ${img ? `<img class="top-person-img" src="${img}" onerror="this.style.display='none'" />` : '<div class="top-person-img top-person-ph">🎭</div>'}
+      <div class="top-person-name">${name}</div>
+      <div class="top-person-count">${data.count} film${data.count > 1 ? 's' : ''}</div>
+    </div>`;
+  }
+
+  const topA = Object.entries(actorMap).sort((a, b) => b[1].count - a[1].count).slice(0, 5);
+  const topD = Object.entries(dirMap).sort((a, b) => b[1].count - a[1].count).slice(0, 5);
+
+  el.innerHTML = `
+    <div class="top-cast-section">
+      <div class="top-cast-title">🎭 Acteurs les plus vus</div>
+      <div class="top-cast-grid">${topA.length ? topA.map(card).join('') : '<span class="top-cast-empty">Pas assez de données</span>'}</div>
+    </div>
+    <div class="top-cast-section">
+      <div class="top-cast-title">🎬 Réalisateurs favoris</div>
+      <div class="top-cast-grid">${topD.length ? topD.map(card).join('') : '<span class="top-cast-empty">Pas assez de données</span>'}</div>
+    </div>`;
+}
+window.renderTopCast = renderTopCast;
+
+// ── D. DISTRIBUTION PAR DÉCENNIE ──────────────────────────────────────────
+function renderYearDistribution() {
+  const el = document.getElementById('statsPodium');
+  if (!el) return;
+  if (el.querySelector('.year-dist-wrap')) return; // already rendered
+
+  const withYear = library.filter(m => m.year && m.status === 'watched');
+  if (withYear.length < 3) return;
+
+  const decades = {};
+  withYear.forEach(m => {
+    const key = `${Math.floor(m.year / 10) * 10}s`;
+    decades[key] = (decades[key] || 0) + 1;
+  });
+  const sorted = Object.entries(decades).sort((a, b) => a[0].localeCompare(b[0]));
+  const max = Math.max(...sorted.map(([, n]) => n));
+
+  const wrap = document.createElement('div');
+  wrap.className = 'year-dist-wrap';
+  wrap.innerHTML = `
+    <div class="year-dist-title">📅 Films par décennie</div>
+    <div class="year-dist-bars">
+      ${sorted.map(([label, count]) => `
+        <div class="year-dist-col">
+          <div class="year-dist-bar-wrap">
+            <div class="year-dist-bar" style="height:${Math.round(count / max * 100)}%" title="${count} titres"></div>
+          </div>
+          <div class="year-dist-count">${count}</div>
+          <div class="year-dist-label">${label}</div>
+        </div>`).join('')}
+    </div>`;
+  el.insertBefore(wrap, el.firstChild);
+}
+window.renderYearDistribution = renderYearDistribution;
+
+// Hook renderYearDistribution + renderTopCast into renderStats
+const _origRenderStats2 = renderStats;
+if (typeof _origRenderStats2 === 'function') {
+  renderStats = function() {
+    _origRenderStats2();
+    renderYearDistribution();
+    renderTopCast();
+  };
+}

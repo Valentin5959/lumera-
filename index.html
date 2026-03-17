@@ -10,7 +10,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Lumèra" />
-  <link rel="stylesheet" href="style.css?v=17" />
+  <link rel="stylesheet" href="style.css?v=18" />
 </head>
 <body>
 <div id="topProgressBar"></div>
@@ -22,9 +22,10 @@
       <img src="8_1sasa11.jpg" alt="Lumèra logo" class="brand-logo" />
       <span class="brand-name">Lumèra</span>
     </div>
-    <div class="nav-search">
+    <div class="nav-search" style="position:relative">
       <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="globalSearch" placeholder="Rechercher un titre..." autocomplete="off" />
+      <div class="search-dropdown hidden" id="searchDropdown"></div>
     </div>
     <nav class="nav-links">
       <button class="nav-btn active" data-page="home">Accueil</button>
@@ -672,6 +673,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=17"></script>
+  <script src="app.js?v=18"></script>
 </body>
 </html>

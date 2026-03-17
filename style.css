@@ -2489,3 +2489,39 @@ body.season-winter .hero { background: linear-gradient(135deg, var(--bg) 60%, rg
 .profil-recent-title { font-size: 0.86rem; font-weight: 600; color: var(--text); }
 .profil-recent-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
 .profil-empty { color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem; }
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* BATCH 6 — Search Dropdown · Top Cast · Year Distribution                   */
+/* ══════════════════════════════════════════════════════════════════════════ */
+.search-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  z-index: 2000; overflow: hidden; max-height: 320px; overflow-y: auto;
+}
+.sdrop-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.9rem; cursor: pointer; transition: background 0.12s; }
+.sdrop-item:hover { background: var(--accent-soft); }
+.sdrop-thumb { width: 30px; height: 44px; object-fit: cover; border-radius: 5px; flex-shrink: 0; }
+.sdrop-ph { background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.sdrop-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+.sdrop-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.1rem; }
+
+.top-cast-section { margin-bottom: 1.5rem; }
+.top-cast-title { font-size: 0.9rem; font-weight: 700; color: var(--text-sub); margin-bottom: 0.8rem; }
+.top-cast-grid { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+.top-person-card { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 0.6rem; width: 90px; text-align: center; transition: transform 0.15s; flex-shrink: 0; }
+.top-person-card:hover { transform: translateY(-3px); }
+.top-person-img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; }
+.top-person-ph { background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+.top-person-name { font-size: 0.68rem; font-weight: 600; color: var(--text); line-height: 1.2; }
+.top-person-count { font-size: 0.63rem; color: var(--accent); font-weight: 600; }
+.top-cast-empty { font-size: 0.8rem; color: var(--text-muted); padding: 0.5rem 0; }
+
+.year-dist-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.2rem 1.4rem; margin-bottom: 1.5rem; }
+.year-dist-title { font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 1rem; }
+.year-dist-bars { display: flex; align-items: flex-end; gap: 0.6rem; height: 120px; }
+.year-dist-col { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; flex: 1; }
+.year-dist-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+.year-dist-bar { width: 100%; min-height: 4px; background: var(--accent); border-radius: 6px 6px 0 0; transition: height 0.6s ease; opacity: 0.85; }
+.year-dist-count { font-size: 0.68rem; font-weight: 700; color: var(--accent); }
+.year-dist-label { font-size: 0.6rem; color: var(--text-muted); text-align: center; }
