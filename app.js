@@ -2096,9 +2096,11 @@ function openDetail(id) {
         <button class="btn-secondary detail-list-btn" onclick="openListPicker('${id}')">📁 Listes</button>
         ${hasExtra ? `<button class="btn-secondary detail-more-btn" id="detailMoreBtn" onclick="toggleDetailExtra()">📋 Plus de détails</button>` : ''}
         <button class="btn-secondary" onclick="openShareCard('${id}')">📤 Partager</button>
+        <button class="btn-ai" onclick="askAI('${id}')">✨ Analyse IA</button>
         <button class="btn-edit" onclick="editItem('${id}')">✏️ Modifier</button>
         <button class="btn-danger" onclick="deleteItem('${id}')">🗑️ Supprimer</button>
       </div>
+      <div id="aiAnalysis" class="ai-analysis hidden"></div>
       <div id="rewatchSection"></div>
     </div>
   `;
@@ -2112,6 +2114,59 @@ function openDetail(id) {
 }
 
 function closeDetail() { document.getElementById('detailOverlay').classList.add('hidden'); }
+
+// ── ANALYSE IA ─────────────────────────────────────────────────────────────
+const AI_WORKER = 'https://lumera-ai.valentindarras33.workers.dev';
+
+window.askAI = async function(id) {
+  const item = library.find(m => m.id === id);
+  if (!item) return;
+
+  const box = document.getElementById('aiAnalysis');
+  const btn = document.querySelector('.btn-ai');
+  if (!box) return;
+
+  box.classList.remove('hidden');
+  box.innerHTML = '<div class="ai-loading">✨ Claude analyse…</div>';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+
+  const userContext = [
+    item.rating ? `J'ai mis ${item.rating}/10.` : '',
+    item.review ? `Mon avis : "${item.review}"` : '',
+    item.genres ? `Genres : ${item.genres}.` : ''
+  ].filter(Boolean).join(' ');
+
+  const prompt = `Tu es un expert en cinéma, séries et jeux vidéo. Analyse ce titre de façon concise et enthousiaste en français.
+
+Titre : ${item.title} (${item.year || '?'})
+Type : ${item.type === 'movie' ? 'Film' : item.type === 'series' ? 'Série' : item.type === 'anime' ? 'Animé' : 'Jeu vidéo'}
+${item.synopsis ? 'Synopsis : ' + item.synopsis.slice(0, 300) : ''}
+${userContext}
+
+Réponds avec ce format exact (markdown simple) :
+**🎯 En bref** : [1-2 phrases percutantes sur le titre]
+**💡 Ce qui le rend unique** : [1-2 phrases sur ce qui distingue ce titre]
+**👥 Pour qui ?** : [profil du spectateur/joueur idéal]
+**🔗 Si tu as aimé ça, essaie** : [2-3 titres similaires avec une phrase d'explication]`;
+
+  try {
+    const res = await fetch(AI_WORKER, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || 'Aucune réponse.';
+    box.innerHTML = `<div class="ai-content">${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>`;
+  } catch(e) {
+    box.innerHTML = '<div class="ai-error">❌ Erreur de connexion au Worker.</div>';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '✨ Analyse IA'; }
+};
 
 window.toggleDetailExtra = function() {
   const extra = document.getElementById('detailExtra');
