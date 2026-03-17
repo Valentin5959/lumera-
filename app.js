@@ -2160,10 +2160,14 @@ Réponds avec ce format exact (markdown simple) :
       })
     });
     const data = await res.json();
-    const text = data.content?.[0]?.text || 'Aucune réponse.';
-    box.innerHTML = `<div class="ai-content">${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>`;
+    if (data.error) {
+      box.innerHTML = `<div class="ai-error">❌ Erreur API : ${data.error.message || JSON.stringify(data.error)}</div>`;
+    } else {
+      const text = data.content?.[0]?.text || 'Aucune réponse.';
+      box.innerHTML = `<div class="ai-content">${text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')}</div>`;
+    }
   } catch(e) {
-    box.innerHTML = '<div class="ai-error">❌ Erreur de connexion au Worker.</div>';
+    box.innerHTML = `<div class="ai-error">❌ ${e.message}</div>`;
   }
   if (btn) { btn.disabled = false; btn.textContent = '✨ Analyse IA'; }
 };
