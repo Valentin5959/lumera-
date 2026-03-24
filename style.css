@@ -2555,7 +2555,7 @@ body.season-winter .hero { background: linear-gradient(135deg, var(--bg) 60%, rg
 @keyframes aurora-drift3 { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(12vw,-10vh) scale(1.05); } 100% { transform: translate(-8vw,-5vh) scale(1.1); } }
 @keyframes aurora-drift4 { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(-6vw,10vh) scale(0.9); } 100% { transform: translate(10vw,-8vh) scale(1.2); } }
 body:not(.dark) .aurora-blob { opacity: 0.15; }
-.navbar, .main-content, .page, .modal-overlay, .detail-overlay { position: relative; z-index: 1; }
+.navbar, .main-content, .page { position: relative; z-index: 1; }
 
 /* ── RECOMMANDATIONS TMDB ── */
 .detail-recos { margin-top: 1.5rem; }
