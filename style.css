@@ -1001,7 +1001,7 @@ body.dark input[type="date"]::-webkit-calendar-picker-indicator {
 .cards-grid.poster-view .card-poster-placeholder { aspect-ratio: 2/3; }
 
 /* ── DETAIL BLURRED BG (feature 18) ─────────────────────────────────────── */
-.modal-detail { position: relative; overflow: hidden; }
+.modal-detail { position: relative; overflow-y: auto; }
 .detail-blur-bg {
   position: absolute; inset: 0; z-index: 0;
   background-size: cover; background-position: center;
