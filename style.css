@@ -418,6 +418,14 @@ body.dark .ai-content { color: #e2e8f0; }
 /* FORM ROW 3 COLUMNS */
 .form-row-3 { grid-template-columns: 1fr 1fr 1fr !important; }
 
+/* Season checkboxes */
+.season-checks-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.season-check-item { display: flex; align-items: center; gap: 0.4rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.4rem 0.75rem; cursor: pointer; transition: all var(--transition); user-select: none; font-size: 0.82rem; font-weight: 600; color: var(--text-sub); }
+.season-check-item:hover { border-color: var(--accent); color: var(--accent); }
+.season-check-item input[type="checkbox"] { display: none; }
+.season-check-item.checked { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.season-check-item.checked::before { content: '✓ '; }
+
 /* EPISODE PROGRESS (card) */
 .card-episode-progress { margin-top: 0.35rem; }
 .ep-bar { height: 2px; background: rgba(255,255,255,0.15); border-radius: 99px; overflow: hidden; margin-bottom: 0.2rem; }

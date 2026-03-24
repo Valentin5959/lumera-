@@ -2331,7 +2331,36 @@ window.deleteItem = deleteItem;
 function updateEpisodeFieldsVisibility() {
   const show = currentType === 'series' || currentType === 'anime';
   document.getElementById('episodeFields').classList.toggle('hidden', !show);
+  document.getElementById('seasonChecksSection').classList.toggle('hidden', !show);
   updateStatusOptions();
+}
+
+function renderSeasonChecks() {
+  const total = parseInt(document.getElementById('fTotalSeasons').value) || 0;
+  const container = document.getElementById('seasonChecksContainer');
+  if (total <= 0) { container.innerHTML = ''; return; }
+  const existing = Array.from(container.querySelectorAll('.season-check-item.checked')).map(el => parseInt(el.dataset.season));
+  container.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'season-checks-grid';
+  for (let i = 1; i <= total; i++) {
+    const item = document.createElement('label');
+    item.className = 'season-check-item' + (existing.includes(i) ? ' checked' : '');
+    item.dataset.season = i;
+    item.innerHTML = `<input type="checkbox" value="${i}" ${existing.includes(i) ? 'checked' : ''} /> S${i}`;
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      const cb = this.querySelector('input');
+      cb.checked = !cb.checked;
+      this.classList.toggle('checked', cb.checked);
+    });
+    grid.appendChild(item);
+  }
+  container.appendChild(grid);
+}
+
+function getCheckedSeasons() {
+  return Array.from(document.querySelectorAll('#seasonChecksContainer .season-check-item.checked')).map(el => parseInt(el.dataset.season));
 }
 
 function updateStatusOptions() {
@@ -2368,11 +2397,20 @@ function openAddModal(item = null) {
   document.getElementById('fSeason').value = item ? (item.season || '') : '';
   document.getElementById('fEpCurrent').value = item ? (item.epCurrent || '') : '';
   document.getElementById('fEpTotal').value = item ? (item.epTotal || '') : '';
+  document.getElementById('fTotalSeasons').value = item ? (item.totalSeasons || '') : '';
   document.getElementById('fTags').value = item ? (item.tags || []).join(', ') : '';
   renderTagsPreview();
 
   document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === currentType));
   updateEpisodeFieldsVisibility();
+  // Render season checks and restore checked state
+  renderSeasonChecks();
+  if (item && item.seasonsWatched && item.seasonsWatched.length > 0) {
+    item.seasonsWatched.forEach(s => {
+      const el = document.querySelector(`#seasonChecksContainer .season-check-item[data-season="${s}"]`);
+      if (el) { el.classList.add('checked'); el.querySelector('input').checked = true; }
+    });
+  }
   renderStarInput();
   updateSearchBtnLabel();
 
@@ -2475,6 +2513,8 @@ document.getElementById('mediaForm').addEventListener('submit', function(e) {
     season: parseInt(document.getElementById('fSeason').value) || null,
     epCurrent: parseInt(document.getElementById('fEpCurrent').value) || null,
     epTotal: parseInt(document.getElementById('fEpTotal').value) || null,
+    totalSeasons: parseInt(document.getElementById('fTotalSeasons').value) || null,
+    seasonsWatched: getCheckedSeasons(),
     dateAdded: editingId ? (library.find(m => m.id === editingId)?.dateAdded || Date.now()) : Date.now(),
     tags: document.getElementById('fTags').value.trim().split(',').map(t => t.trim()).filter(Boolean),
   };
