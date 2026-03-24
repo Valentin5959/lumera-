@@ -2408,11 +2408,13 @@ function openAddModal(item = null) {
   }
 
   document.getElementById('modalOverlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
   document.getElementById('fTitle').focus();
 }
 
 function closeAddModal() {
   document.getElementById('modalOverlay').classList.add('hidden');
+  document.body.style.overflow = '';
   document.getElementById('mediaForm').reset();
   editingId = null;
   currentRating = 0;
