@@ -1003,12 +1003,12 @@ body.dark input[type="date"]::-webkit-calendar-picker-indicator {
 /* ── DETAIL BLURRED BG (feature 18) ─────────────────────────────────────── */
 .modal-detail { position: relative; }
 .detail-blur-bg {
-  position: absolute; inset: 0; z-index: 0;
-  background-size: cover; background-position: center;
-  filter: blur(28px) brightness(0.35) saturate(1.4);
-  transform: scale(1.1);
+  position: absolute; inset: -20px; z-index: 0;
+  background-size: cover; background-position: center top;
+  filter: blur(28px) brightness(0.3) saturate(1.4);
   pointer-events: none;
 }
+.modal-detail.has-poster-bg { background: #0a0715; }
 .modal-detail.has-poster-bg #detailContent { position: relative; z-index: 1; }
 .modal-detail.has-poster-bg .modal-close { position: relative; z-index: 2; }
 .modal-detail.has-poster-bg .detail-inner { background: transparent; }
