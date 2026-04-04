@@ -1066,6 +1066,28 @@ body.dark input[type="date"]::-webkit-calendar-picker-indicator {
 .list-empty-ph { color: var(--text-muted); font-size: 0.78rem; display: flex; align-items: center; }
 .list-card-count { font-size: 0.75rem; color: var(--text-muted); }
 
+/* Listes verrouillées */
+.list-card-locked { opacity: 0.72; }
+.list-card-locked:hover { transform: none; box-shadow: none; }
+.list-card-locked .list-card-name { color: var(--text-sub); }
+.list-lock-badge {
+  font-size: 0.8rem; flex-shrink: 0; opacity: 0.7;
+}
+.list-badge-lifetime { opacity: 1; }
+
+/* Header catégorie dans la grille de listes */
+.lists-category-header {
+  grid-column: 1 / -1;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--text-muted);
+  padding: 0.6rem 0 0.2rem; margin-top: 0.5rem;
+  border-bottom: 1px solid var(--border); margin-bottom: 0.25rem;
+}
+.lists-category-header:first-child { margin-top: 0; }
+
+/* Picker : ligne verrouillée */
+.list-picker-locked { opacity: 0.5; cursor: not-allowed; }
+
 .list-detail-view { }
 .list-detail-header {
   display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;

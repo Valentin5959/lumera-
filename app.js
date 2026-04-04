@@ -1121,6 +1121,31 @@ let selectedListColor = LIST_COLORS[0];
 
 function saveLists() { localStorage.setItem('lumera_lists', JSON.stringify(customLists)); }
 
+function renderListCard(list) {
+  const items  = list.items.map(id => library.find(m => m.id === id)).filter(Boolean);
+  const thumbs = items.slice(0, 4).map(item =>
+    item.poster
+      ? `<img src="${item.poster}" class="list-thumb" onerror="this.outerHTML='<div class=\\'list-thumb list-thumb-ph\\'>${typeEmoji(item.type)}</div>'" />`
+      : `<div class="list-thumb list-thumb-ph">${typeEmoji(item.type)}</div>`
+  ).join('');
+  const isTemplate = !!list.tplKey;
+  const lockBadge  = list.locked
+    ? `<span class="list-lock-badge" title="Liste verrouillée — année ${list.year} terminée">🔒</span>`
+    : (list.listType === 'lifetime' ? `<span class="list-lock-badge list-badge-lifetime" title="Toujours modifiable">♾️</span>` : '');
+  const delBtn = isTemplate
+    ? '' // pas de suppression pour les templates
+    : `<button class="list-card-del" onclick="event.stopPropagation(); deleteList('${list.id}')" title="Supprimer">🗑️</button>`;
+  return `<div class="list-card ${list.locked ? 'list-card-locked' : ''}" onclick="openListDetail('${list.id}')" style="--lc:${list.color || 'var(--accent)'}">
+    <div class="list-card-top">
+      <div class="list-card-dot" style="background:${list.color}"></div>
+      <span class="list-card-name">${list.name}</span>
+      ${lockBadge}${delBtn}
+    </div>
+    <div class="list-thumbs">${thumbs || '<div class="list-empty-ph">Vide</div>'}</div>
+    <div class="list-card-count">${items.length} titre${items.length !== 1 ? 's' : ''}</div>
+  </div>`;
+}
+
 function renderLists() {
   const grid = document.getElementById('listsGrid');
   const detail = document.getElementById('listDetailView');
@@ -1144,22 +1169,27 @@ function renderLists() {
     grid.innerHTML = `<div class="lists-empty"><div class="empty-icon">📁</div><p>Aucune liste encore.<br>Crée ta première liste !</p></div>`;
     return;
   }
-  grid.innerHTML = customLists.map(list => {
-    const items = list.items.map(id => library.find(m => m.id === id)).filter(Boolean);
-    const thumbs = items.slice(0, 4).map(item =>
-      item.poster ? `<img src="${item.poster}" class="list-thumb" onerror="this.outerHTML='<div class=\\'list-thumb list-thumb-ph\\'>${typeEmoji(item.type)}</div>'" />`
-      : `<div class="list-thumb list-thumb-ph">${typeEmoji(item.type)}</div>`
-    ).join('');
-    return `<div class="list-card" onclick="openListDetail('${list.id}')" style="--lc:${list.color || 'var(--accent)'}">
-      <div class="list-card-top">
-        <div class="list-card-dot" style="background:${list.color}"></div>
-        <span class="list-card-name">${list.name}</span>
-        <button class="list-card-del" onclick="event.stopPropagation(); deleteList('${list.id}')" title="Supprimer">🗑️</button>
-      </div>
-      <div class="list-thumbs">${thumbs || '<div class="list-empty-ph">Vide</div>'}</div>
-      <div class="list-card-count">${items.length} titre${items.length !== 1 ? 's' : ''}</div>
-    </div>`;
-  }).join('');
+  // Grouper : templates d'abord (par catégorie), puis listes perso
+  const catOrder = ['game', 'series', 'anime_film'];
+  const templates = customLists.filter(l => l.tplKey);
+  const customs   = customLists.filter(l => !l.tplKey);
+
+  const catLabel  = { game: '🎮 Jeux vidéo', series: '📺 Séries', anime_film: '🎬 Films animés' };
+  let html = '';
+
+  catOrder.forEach(cat => {
+    const catLists = templates.filter(l => l.category === cat);
+    if (!catLists.length) return;
+    html += `<div class="lists-category-header">${catLabel[cat]}</div>`;
+    html += catLists.map(list => renderListCard(list)).join('');
+  });
+
+  if (customs.length) {
+    html += `<div class="lists-category-header">📁 Mes listes perso</div>`;
+    html += customs.map(list => renderListCard(list)).join('');
+  }
+
+  grid.innerHTML = html;
 }
 
 window.openListDetail = function(listId) {
@@ -1179,11 +1209,12 @@ window.openListPicker = function(mediaId) {
     content.innerHTML = `<p class="list-picker-empty">Aucune liste créée.<br><a href="#" onclick="closeDetail(); showPage('lists'); document.getElementById('listPickerOverlay').classList.add('hidden')">Créer une liste →</a></p>`;
   } else {
     content.innerHTML = customLists.map(list => {
-      const inList = list.items.includes(mediaId);
-      return `<div class="list-picker-row ${inList ? 'in-list' : ''}" onclick="toggleItemInList('${mediaId}','${list.id}')">
+      const inList  = list.items.includes(mediaId);
+      const locked  = list.locked;
+      return `<div class="list-picker-row ${inList ? 'in-list' : ''} ${locked ? 'list-picker-locked' : ''}" onclick="toggleItemInList('${mediaId}','${list.id}')">
         <div class="list-picker-dot" style="background:${list.color}"></div>
-        <span>${list.name}</span>
-        <span class="list-picker-check">${inList ? '✓' : '+'}</span>
+        <span>${list.name}${locked ? ' 🔒' : ''}</span>
+        <span class="list-picker-check">${locked ? '—' : inList ? '✓' : '+'}</span>
       </div>`;
     }).join('');
   }
@@ -2884,6 +2915,118 @@ document.getElementById('confirmCreateList')?.addEventListener('click', () => {
 document.getElementById('backToLists')?.addEventListener('click', () => {
   activeListId = null; renderLists();
 });
+
+// ── LISTES TEMPLATES — 12 listes structurées ─────────────────────────────
+
+const LIST_TEMPLATES = [
+  // 🎮 Jeux vidéo
+  { tplId: 'game_marked',      name: "🎮 Jeux qui m'ont marqué",         color: '#7c3aed', category: 'game',       type: 'marked'      },
+  { tplId: 'game_exceptional', name: "✨ Jeux exceptionnels – YEAR",       color: '#d97706', category: 'game',       type: 'yearly'      },
+  { tplId: 'game_played',      name: "🕹️ Jeux joués en YEAR",             color: '#059669', category: 'game',       type: 'yearly'      },
+  { tplId: 'game_lifetime',    name: "👑 Les meilleurs jeux de ma vie",    color: '#dc2626', category: 'game',       type: 'lifetime'    },
+  // 📺 Séries
+  { tplId: 'series_marked',      name: "📺 Séries qui m'ont marqué",        color: '#7c3aed', category: 'series',     type: 'marked'      },
+  { tplId: 'series_exceptional', name: "✨ Séries exceptionnelles – YEAR",   color: '#d97706', category: 'series',     type: 'yearly'      },
+  { tplId: 'series_played',      name: "👁️ Séries vues en YEAR",            color: '#059669', category: 'series',     type: 'yearly'      },
+  { tplId: 'series_lifetime',    name: "👑 Les meilleures séries de ma vie", color: '#dc2626', category: 'series',     type: 'lifetime'    },
+  // 🎬 Films animés
+  { tplId: 'anime_marked',      name: "🎬 Films animés qui m'ont marqué",        color: '#7c3aed', category: 'anime_film', type: 'marked'   },
+  { tplId: 'anime_exceptional', name: "✨ Films animés exceptionnels – YEAR",     color: '#d97706', category: 'anime_film', type: 'yearly'   },
+  { tplId: 'anime_played',      name: "🍿 Films animés vus en YEAR",              color: '#059669', category: 'anime_film', type: 'yearly'   },
+  { tplId: 'anime_lifetime',    name: "👑 Les meilleurs films animés de ma vie",  color: '#dc2626', category: 'anime_film', type: 'lifetime' },
+];
+
+function initTemplateLists() {
+  const year = new Date().getFullYear();
+  let changed = false;
+
+  LIST_TEMPLATES.forEach(tpl => {
+    const yearName = tpl.name.replace('YEAR', year);
+    const tplKey   = tpl.type === 'yearly' ? `${tpl.tplId}_${year}` : tpl.tplId;
+
+    // Déjà existante ?
+    const exists = customLists.some(l => l.tplKey === tplKey);
+    if (!exists) {
+      customLists.push({
+        id:       `tpl_${tplKey}_${Date.now()}`,
+        tplKey,
+        tplId:    tpl.tplId,
+        name:     yearName,
+        color:    tpl.color,
+        category: tpl.category,
+        listType: tpl.type,           // 'marked' | 'yearly' | 'lifetime'
+        year:     tpl.type === 'yearly' ? year : null,
+        locked:   false,
+        items:    [],
+      });
+      changed = true;
+    }
+  });
+
+  if (changed) { saveLists(); renderLists(); }
+}
+
+// Verrouille les listes annuelles de l'année passée & crée celles de l'an neuf
+function yearRolloverCheck() {
+  const now   = new Date();
+  const year  = now.getFullYear();
+  let changed = false;
+
+  customLists.forEach(l => {
+    if (l.listType === 'yearly' && l.year && l.year < year && !l.locked) {
+      l.locked = true;
+      changed  = true;
+    }
+  });
+
+  // Créer les listes de la nouvelle année si elles n'existent pas
+  LIST_TEMPLATES.filter(t => t.type === 'yearly').forEach(tpl => {
+    const tplKey = `${tpl.tplId}_${year}`;
+    if (!customLists.some(l => l.tplKey === tplKey)) {
+      customLists.push({
+        id:       `tpl_${tplKey}_${Date.now()}`,
+        tplKey,
+        tplId:    tpl.tplId,
+        name:     tpl.name.replace('YEAR', year),
+        color:    tpl.color,
+        category: tpl.category,
+        listType: 'yearly',
+        year,
+        locked:   false,
+        items:    [],
+      });
+      changed = true;
+    }
+  });
+
+  if (changed) { saveLists(); }
+}
+
+// Empêcher modification d'une liste verrouillée
+const _origToggle = window.toggleItemInList;
+window.toggleItemInList = function(mediaId, listId) {
+  const list = customLists.find(l => l.id === listId);
+  if (list && list.locked) {
+    showToast(`🔒 Liste de ${list.year} verrouillée`, 'error');
+    return;
+  }
+  _origToggle(mediaId, listId);
+};
+
+// Empêcher suppression des listes templates
+const _origDelete = window.deleteList;
+window.deleteList = function(listId) {
+  const list = customLists.find(l => l.id === listId);
+  if (list && list.tplKey) {
+    showToast('Les listes templates ne peuvent pas être supprimées', 'error');
+    return;
+  }
+  _origDelete(listId);
+};
+
+// Lancer l'init
+yearRolloverCheck();
+initTemplateLists();
 document.getElementById('closeListPicker')?.addEventListener('click', () => {
   document.getElementById('listPickerOverlay').classList.add('hidden');
 });
