@@ -2675,10 +2675,7 @@ document.getElementById('resetBtn')?.addEventListener('click', () => {
 
 // Import / Export
 document.getElementById('exportBtn').addEventListener('click', exportLibrary);
-document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importInput').click());
-document.getElementById('importInput').addEventListener('change', e => {
-  if (e.target.files[0]) { importLibrary(e.target.files[0]); e.target.value = ''; }
-});
+// importBtn et importInput sont maintenant gérés par le modal d'import (section K)
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
@@ -4070,61 +4067,187 @@ document.getElementById('challengesBtn')?.addEventListener('click', openChalleng
 document.getElementById('challengesClose')?.addEventListener('click', () => document.getElementById('challengesOverlay')?.classList.add('hidden'));
 document.getElementById('challengesOverlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden'); });
 
-// ── K. IMPORT CSV (LETTERBOXD / IMDB) ────────────────────────────────────
-(function() {
-  const importInput = document.getElementById('importInput');
-  if (!importInput) return;
+// ── K. IMPORT MODAL ───────────────────────────────────────────────────────
 
-  // Override the existing change handler to also handle CSV
-  const origHandler = importInput.onchange;
-  importInput.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.name.endsWith('.csv')) return; // JSON handled by existing handler
+// Parseur CSV robuste (gère les guillemets et virgules dans les champs)
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      result.push(cur.trim()); cur = '';
+    } else { cur += c; }
+  }
+  result.push(cur.trim());
+  return result;
+}
 
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      const text = ev.target.result;
-      const lines = text.trim().split('\n');
-      if (lines.length < 2) { showToast('CSV vide ou invalide', 'error'); return; }
-      const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
-      const isLetterboxd = headers.includes('letterboxd uri');
-      const isImdb = headers.includes('const') || headers.includes('tconst');
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
+  if (lines.length < 2) return { headers: [], rows: [] };
+  const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g,'_'));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cols = parseCSVLine(lines[i]);
+    const row = {};
+    headers.forEach((h, idx) => row[h] = (cols[idx] || '').trim());
+    rows.push(row);
+  }
+  return { headers, rows };
+}
 
-      let imported = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) || lines[i].split(',');
-        const clean = cols.map(c => c.replace(/^"|"$/g,'').trim());
-        const get = (...keys) => { for (const k of keys) { const idx = headers.findIndex(h=>h.includes(k)); if (idx>=0) return clean[idx]||''; } return ''; };
+function importFromCSV(text, source) {
+  const { headers, rows } = parseCSV(text);
+  if (!rows.length) return 0;
 
-        const title = get('name','title','primary title');
-        if (!title || library.some(m => m.title.toLowerCase() === title.toLowerCase())) continue;
+  const isLetterboxd = headers.some(h => h.includes('letterboxd'));
+  const isImdb = headers.some(h => h === 'const' || h === 'tconst');
 
-        const year = parseInt(get('year','released')) || null;
-        const rating10 = isLetterboxd ? (parseFloat(get('rating'))||0) * 2 : parseFloat(get('your rating', 'rating'))||0;
-        const watchDate = get('watched date','date','date added');
-        const status = rating10 > 0 || watchDate ? 'watched' : 'watchlist';
-        const type = get('type','title type').toLowerCase().includes('series') ? 'series' : get('type').toLowerCase().includes('game') ? 'game' : 'movie';
-
-        library.unshift({
-          id: uid(), title, type, status, year,
-          rating: rating10 > 0 ? Math.min(10, Math.round(rating10)) : null,
-          watchDate: watchDate || null, poster:'', genres:'', synopsis:'', review:'',
-          favorite: false, trailer: null, tmdbRating: null, tags: [],
-          dateAdded: watchDate ? (new Date(watchDate).getTime() || Date.now()) : Date.now()
-        });
-        imported++;
+  let imported = 0;
+  rows.forEach(row => {
+    const get = (...keys) => {
+      for (const k of keys) {
+        const found = headers.find(h => h.includes(k));
+        if (found && row[found]) return row[found];
       }
-      if (imported > 0) {
-        save(); renderHome(); showToast(`✅ ${imported} titres importés depuis CSV !`);
-      } else {
-        showToast('Aucun nouveau titre trouvé dans ce CSV', 'error');
-      }
+      return '';
     };
-    reader.readAsText(file);
-    importInput.value = '';
+
+    const title = get('name','title','primary_title');
+    if (!title) return;
+    if (library.some(m => m.title.toLowerCase() === title.toLowerCase())) return;
+
+    const year = parseInt(get('year','released')) || null;
+    let rating10 = 0;
+    if (isLetterboxd) {
+      rating10 = parseFloat(get('rating')) * 2 || 0;
+    } else if (isImdb) {
+      rating10 = parseFloat(get('your_rating','rating')) || 0;
+    } else {
+      const r = parseFloat(get('rating','note','score')) || 0;
+      rating10 = r <= 5 ? r * 2 : r; // auto-détecte l'échelle
+    }
+    rating10 = rating10 > 0 ? Math.min(10, Math.round(rating10 * 10) / 10) : null;
+
+    const watchDate = get('watched_date','date_watched','date_added','date') || null;
+    const status = rating10 || watchDate ? 'watched' : 'watchlist';
+
+    const typeRaw = get('type','title_type','media_type').toLowerCase();
+    const type = typeRaw.includes('series') || typeRaw.includes('série') ? 'series'
+      : typeRaw.includes('game') || typeRaw.includes('jeu') ? 'game'
+      : typeRaw.includes('anime') ? 'anime'
+      : 'movie';
+
+    const review = get('review','critique','avis','comment') || '';
+    const genresRaw = get('genres','genre','tags') || '';
+    const genres = genresRaw.split(/[,;|]/).map(g => g.trim()).filter(Boolean).join(', ');
+    const tagsRaw = isLetterboxd ? get('tags') : '';
+    const tags = tagsRaw ? tagsRaw.split(/[,;|]/).map(t => t.trim()).filter(Boolean) : [];
+
+    library.unshift({
+      id: uid(), title, type, status, year,
+      rating: rating10,
+      watchDate: watchDate || null,
+      poster: '', genres, synopsis: '', review,
+      favorite: false, trailer: null, tmdbRating: null, tags,
+      dateAdded: watchDate ? (new Date(watchDate).getTime() || Date.now()) : Date.now()
+    });
+    imported++;
   });
-})();
+
+  if (imported > 0) {
+    save();
+    refreshCurrentPage();
+    showToast(`✅ ${imported} titre${imported > 1 ? 's' : ''} importé${imported > 1 ? 's' : ''} !`);
+  } else {
+    showToast('Aucun nouveau titre à importer (déjà présents ?)', 'error');
+  }
+  return imported;
+}
+
+// Ouvre/ferme le modal d'import
+function openImportModal() {
+  document.getElementById('importModalOverlay')?.classList.remove('hidden');
+}
+function closeImportModal() {
+  document.getElementById('importModalOverlay')?.classList.add('hidden');
+  document.getElementById('importResult')?.classList.add('hidden');
+}
+window.closeImportModal = closeImportModal;
+
+// Onglets du modal
+document.querySelectorAll('.import-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.import-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.import-panel').forEach(p => p.classList.add('hidden'));
+    btn.classList.add('active');
+    document.getElementById(`import-panel-${btn.dataset.itab}`)?.classList.remove('hidden');
+  });
+});
+document.getElementById('importModalClose')?.addEventListener('click', closeImportModal);
+document.getElementById('importModalOverlay')?.addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeImportModal();
+});
+
+// Lumèra JSON
+document.getElementById('importLumeraBtn')?.addEventListener('click', () =>
+  document.getElementById('importInputLumera')?.click());
+document.getElementById('importInputLumera')?.addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  importLibrary(file);
+  e.target.value = '';
+  closeImportModal();
+});
+
+// Letterboxd CSV
+document.getElementById('importLetterboxdBtn')?.addEventListener('click', () =>
+  document.getElementById('importInputLetterboxd')?.click());
+document.getElementById('importInputLetterboxd')?.addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const n = importFromCSV(ev.target.result, 'letterboxd');
+    if (n > 0) closeImportModal();
+  };
+  reader.readAsText(file, 'UTF-8');
+  e.target.value = '';
+});
+
+// IMDB CSV
+document.getElementById('importImdbBtn')?.addEventListener('click', () =>
+  document.getElementById('importInputImdb')?.click());
+document.getElementById('importInputImdb')?.addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const n = importFromCSV(ev.target.result, 'imdb');
+    if (n > 0) closeImportModal();
+  };
+  reader.readAsText(file, 'UTF-8');
+  e.target.value = '';
+});
+
+// CSV générique
+document.getElementById('importCsvBtn')?.addEventListener('click', () =>
+  document.getElementById('importInputCsv')?.click());
+document.getElementById('importInputCsv')?.addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const n = importFromCSV(ev.target.result, 'csv');
+    if (n > 0) closeImportModal();
+  };
+  reader.readAsText(file, 'UTF-8');
+  e.target.value = '';
+});
+
+// Remplacer le bouton "Importer" du panneau Outils
+document.getElementById('importBtn')?.addEventListener('click', openImportModal);
 
 // ── L. EXPORT HTML ────────────────────────────────────────────────────────
 function exportHtml() {

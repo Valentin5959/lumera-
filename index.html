@@ -506,6 +506,72 @@
   <!-- TOAST -->
   <div class="toast hidden" id="toast"></div>
 
+  <!-- IMPORT MODAL -->
+  <div class="modal-overlay hidden" id="importModalOverlay">
+    <div class="modal import-modal">
+      <div class="modal-header">
+        <h3>📥 Importer des titres</h3>
+        <button class="modal-close" id="importModalClose">✕</button>
+      </div>
+      <div class="import-tabs">
+        <button class="import-tab active" data-itab="lumera">🎯 Lumèra</button>
+        <button class="import-tab" data-itab="letterboxd">🎬 Letterboxd</button>
+        <button class="import-tab" data-itab="imdb">⭐ IMDB</button>
+        <button class="import-tab" data-itab="csv">📄 CSV générique</button>
+      </div>
+
+      <!-- Lumèra JSON -->
+      <div class="import-panel active" id="import-panel-lumera">
+        <p class="import-desc">Importe un fichier <strong>.json</strong> exporté depuis Lumèra. Attention : cela <strong>remplace</strong> ta bibliothèque actuelle.</p>
+        <div class="import-tip">💡 Fais d'abord un Export JSON pour sauvegarder l'existant.</div>
+        <button class="btn-primary import-file-btn" id="importLumeraBtn">Choisir un fichier JSON</button>
+        <input type="file" id="importInputLumera" accept=".json" style="display:none" />
+      </div>
+
+      <!-- Letterboxd -->
+      <div class="import-panel hidden" id="import-panel-letterboxd">
+        <div class="import-howto">
+          <p class="import-howto-title">Comment exporter depuis Letterboxd :</p>
+          <ol>
+            <li>Va sur <strong>letterboxd.com</strong> → ton profil</li>
+            <li>Settings → <strong>Import & Export</strong></li>
+            <li>Clique <strong>Export Your Data</strong> → télécharge le ZIP</li>
+            <li>Extrais le ZIP et importe ici le fichier <code>watched.csv</code></li>
+          </ol>
+        </div>
+        <div class="import-tip">✅ Importe : titre, année, note, date, avis, tags — sans écraser l'existant.</div>
+        <button class="btn-primary import-file-btn" id="importLetterboxdBtn">Choisir watched.csv</button>
+        <input type="file" id="importInputLetterboxd" accept=".csv" style="display:none" />
+      </div>
+
+      <!-- IMDB -->
+      <div class="import-panel hidden" id="import-panel-imdb">
+        <div class="import-howto">
+          <p class="import-howto-title">Comment exporter depuis IMDB :</p>
+          <ol>
+            <li>Va sur <strong>imdb.com</strong> → ton profil</li>
+            <li>Ouvre ta liste de films notés</li>
+            <li>Clique les <strong>3 points</strong> → <strong>Export</strong></li>
+            <li>Importe ici le fichier CSV téléchargé</li>
+          </ol>
+        </div>
+        <div class="import-tip">✅ Importe : titre, année, note, genre — sans écraser l'existant.</div>
+        <button class="btn-primary import-file-btn" id="importImdbBtn">Choisir le fichier IMDB CSV</button>
+        <input type="file" id="importInputImdb" accept=".csv" style="display:none" />
+      </div>
+
+      <!-- CSV générique -->
+      <div class="import-panel hidden" id="import-panel-csv">
+        <p class="import-desc">Importe n'importe quel fichier CSV avec au minimum une colonne <code>title</code> ou <code>name</code>.</p>
+        <div class="import-tip">Colonnes reconnues : <code>title/name</code>, <code>year</code>, <code>rating</code>, <code>status</code>, <code>type</code>, <code>review</code>, <code>tags</code></div>
+        <button class="btn-primary import-file-btn" id="importCsvBtn">Choisir un fichier CSV</button>
+        <input type="file" id="importInputCsv" accept=".csv" style="display:none" />
+      </div>
+
+      <div class="import-result hidden" id="importResult"></div>
+    </div>
+  </div>
+
   <!-- MOBILE NAV -->
   <nav class="mobile-nav" id="mobileNav">
     <button class="mob-nav-btn active" data-page="home"><span class="mob-nav-icon">🏠</span><span class="mob-nav-label">Accueil</span></button>

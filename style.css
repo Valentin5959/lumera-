@@ -2062,6 +2062,39 @@ body.dark .storage-banner { background: rgba(37,99,235,0.1); border-color: rgba(
 }
 .storage-banner-close:hover { opacity: 1; }
 
+/* IMPORT MODAL */
+.import-modal { max-width: 520px; padding: 0; overflow: hidden; }
+.import-modal .modal-header { padding: 1.3rem 1.5rem 0.9rem; border-bottom: 1px solid var(--border); margin-bottom: 0; }
+.import-tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  padding: 0 1rem; overflow-x: auto; scrollbar-width: none;
+}
+.import-tabs::-webkit-scrollbar { display: none; }
+.import-tab {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  padding: 0.7rem 0.9rem; font-size: 0.8rem; font-weight: 600;
+  color: var(--text-sub); cursor: pointer; white-space: nowrap;
+  transition: all var(--transition); font-family: var(--font-body);
+  margin-bottom: -1px;
+}
+.import-tab:hover { color: var(--text); }
+.import-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.import-panel { padding: 1.4rem 1.5rem 1.8rem; }
+.import-desc { font-size: 0.875rem; color: var(--text-sub); line-height: 1.6; margin-bottom: 1rem; }
+.import-howto { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem 1.2rem; margin-bottom: 1rem; }
+.import-howto-title { font-size: 0.8rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.6rem; }
+.import-howto ol { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.import-howto li { font-size: 0.85rem; color: var(--text); line-height: 1.5; }
+.import-howto code { background: var(--accent-soft); color: var(--accent); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.8rem; }
+.import-tip {
+  font-size: 0.8rem; color: var(--green); background: var(--green-soft);
+  border: 1px solid rgba(5,150,105,0.2); border-radius: var(--radius-sm);
+  padding: 0.55rem 0.9rem; margin-bottom: 1.2rem; line-height: 1.5;
+}
+body.dark .import-tip { color: #34d399; background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.2); }
+.import-tip code { background: rgba(5,150,105,0.15); color: inherit; padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.78rem; }
+.import-file-btn { width: 100%; justify-content: center; }
+
 /* ── C. PAGE TRANSITIONS — apply via class, not persistent, to avoid scroll glitch ── */
 @keyframes page-slide-in {
   from { opacity: 0; transform: translateY(14px); }
