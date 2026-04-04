@@ -5272,3 +5272,19 @@ if (typeof _origRenderStats2 === 'function') {
     renderWatchCalendar();
   };
 }
+
+// ── BANNIÈRE PERSISTANCE DONNÉES ──────────────────────────────────────────
+(function() {
+  const banner = document.getElementById('storageBanner');
+  const closeBtn = document.getElementById('storageBannerClose');
+  if (!banner || !closeBtn) return;
+  const dismissed = localStorage.getItem('lumera_banner_storage_dismissed');
+  // Affiche la bannière seulement si la lib a au moins 1 titre et pas encore fermée
+  if (!dismissed && library.length > 0) {
+    banner.classList.remove('hidden');
+  }
+  closeBtn.addEventListener('click', () => {
+    banner.classList.add('hidden');
+    localStorage.setItem('lumera_banner_storage_dismissed', '1');
+  });
+})();

@@ -2012,6 +2012,55 @@ body.letterbox-mode .navbar, body.letterbox-mode .mobile-nav { opacity: 0; point
 .tool-btn-danger { border-color: rgba(239,68,68,0.25); color: #ef4444; }
 .tool-btn-danger:hover { border-color: #ef4444; background: rgba(239,68,68,0.08); color: #ef4444; }
 
+/* TOOLS PANEL — sections */
+.tools-panel-body { overflow-y: auto; flex: 1; padding: 0.75rem 1rem 1.5rem; display: flex; flex-direction: column; gap: 0; }
+.tools-section-label {
+  font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-muted); padding: 0.9rem 0 0.4rem; border-top: 1px solid var(--border); margin-top: 0.4rem;
+}
+.tools-section-label:first-child { border-top: none; margin-top: 0; padding-top: 0.2rem; }
+.tools-section-label--fun { color: var(--accent); opacity: 0.7; }
+.tools-panel-grid--danger { display: grid; grid-template-columns: 1fr; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+
+/* HERO ART — stack de cards animées */
+.hero-art { position: relative; z-index: 1; }
+.hero-art-stack {
+  position: relative; width: 130px; height: 130px;
+  display: flex; align-items: center; justify-content: center;
+}
+.hero-art-card {
+  position: absolute; width: 72px; height: 72px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 18px; display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; backdrop-filter: blur(6px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  transition: transform 0.4s ease;
+}
+.hero-art-card--back  { transform: rotate(-15deg) translate(-22px, 8px); opacity: 0.55; }
+.hero-art-card--mid   { transform: rotate(-5deg) translate(4px, 4px);  opacity: 0.75; }
+.hero-art-card--front { transform: rotate(8deg)  translate(18px, -6px); opacity: 1; }
+.hero-art-stack:hover .hero-art-card--back  { transform: rotate(-18deg) translate(-26px, 10px); }
+.hero-art-stack:hover .hero-art-card--mid   { transform: rotate(-6deg) translate(4px, 6px); }
+.hero-art-stack:hover .hero-art-card--front { transform: rotate(10deg) translate(22px, -8px); }
+@media (max-width: 768px) { .hero-art { display: none; } }
+
+/* BANNER localStorage */
+.storage-banner {
+  display: flex; align-items: center; gap: 0.7rem;
+  background: var(--blue-soft); border-bottom: 1px solid rgba(37,99,235,0.18);
+  color: var(--blue); font-size: 0.78rem; font-weight: 500;
+  padding: 0.55rem 1.5rem; position: relative; z-index: 90;
+}
+body.dark .storage-banner { background: rgba(37,99,235,0.1); border-color: rgba(96,165,250,0.2); color: var(--blue); }
+.storage-banner-icon { font-size: 1rem; flex-shrink: 0; }
+.storage-banner span:not(.storage-banner-icon) { flex: 1; }
+.storage-banner-close {
+  background: none; border: none; color: inherit; opacity: 0.6;
+  cursor: pointer; font-size: 0.85rem; padding: 0.1rem 0.35rem;
+  border-radius: 4px; transition: opacity 0.15s; flex-shrink: 0;
+}
+.storage-banner-close:hover { opacity: 1; }
+
 /* ── C. PAGE TRANSITIONS — apply via class, not persistent, to avoid scroll glitch ── */
 @keyframes page-slide-in {
   from { opacity: 0; transform: translateY(14px); }

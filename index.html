@@ -14,6 +14,12 @@
 </head>
 <body>
 <div id="topProgressBar"></div>
+<!-- BANNER PERSISTANCE DONNÉES -->
+<div class="storage-banner hidden" id="storageBanner">
+  <span class="storage-banner-icon">💾</span>
+  <span>Tes données sont sauvegardées localement. Exporte régulièrement en JSON pour ne rien perdre !</span>
+  <button class="storage-banner-close" id="storageBannerClose">✕</button>
+</div>
 <div id="scrollIndicator"><div id="scrollProgress"></div></div>
 <div class="aurora-bg" aria-hidden="true">
   <div class="aurora-blob aurora-1"></div>
@@ -67,24 +73,38 @@
       <span class="tools-panel-title">🛠️ Outils</span>
       <button class="tools-panel-close" id="toolsPanelClose">✕</button>
     </div>
-    <div class="tools-panel-grid">
-      <button class="tool-btn achievements-btn" id="achievementsBtn"><span class="tool-icon">🏆</span>Trophées</button>
-      <button class="tool-btn" id="challengesBtn"><span class="tool-icon">🎯</span>Challenges</button>
-      <button class="tool-btn" id="shortcutsBtn"><span class="tool-icon">⌨️</span>Raccourcis</button>
-      <button class="tool-btn" id="timelineBtn"><span class="tool-icon">📅</span>Timeline</button>
-      <button class="tool-btn" id="compareBtn"><span class="tool-icon">⚔️</span>Comparer</button>
-      <button class="tool-btn" id="blindTestBtn"><span class="tool-icon">🎲</span>Blind Test</button>
-      <button class="tool-btn" id="letterboxBtn"><span class="tool-icon">🎞️</span>Letterbox</button>
-      <button class="tool-btn" id="ambianceBtn"><span class="tool-icon">🎵</span>Ambiance</button>
-      <button class="tool-btn" id="theatreBtn"><span class="tool-icon">🎭</span>Théâtre</button>
-      <button class="tool-btn" id="wrappedBtn"><span class="tool-icon">🎁</span>Mon année</button>
-      <button class="tool-btn" id="historyBtn"><span class="tool-icon">🕐</span>Historique</button>
-      <button class="tool-btn" id="exportBtn"><span class="tool-icon">📤</span>Export JSON</button>
-      <button class="tool-btn" id="importBtn"><span class="tool-icon">📥</span>Importer</button>
-      <button class="tool-btn" id="exportHtmlBtn"><span class="tool-icon">📄</span>Export HTML</button>
-      <button class="tool-btn" id="duelBtn"><span class="tool-icon">🥊</span>Duel</button>
-      <button class="tool-btn" id="heroBgBtn"><span class="tool-icon">📷</span>Fond hero</button>
-      <button class="tool-btn tool-btn-danger" id="resetBtn"><span class="tool-icon">🗑️</span>Réinitialiser</button>
+    <div class="tools-panel-body">
+      <div class="tools-section-label">Suivi & Analyse</div>
+      <div class="tools-panel-grid">
+        <button class="tool-btn achievements-btn" id="achievementsBtn"><span class="tool-icon">🏆</span>Trophées</button>
+        <button class="tool-btn" id="challengesBtn"><span class="tool-icon">🎯</span>Challenges</button>
+        <button class="tool-btn" id="timelineBtn"><span class="tool-icon">📅</span>Timeline</button>
+        <button class="tool-btn" id="historyBtn"><span class="tool-icon">🕐</span>Historique</button>
+        <button class="tool-btn" id="wrappedBtn"><span class="tool-icon">🎁</span>Mon année</button>
+        <button class="tool-btn" id="compareBtn"><span class="tool-icon">⚔️</span>Comparer</button>
+      </div>
+
+      <div class="tools-section-label">Import / Export</div>
+      <div class="tools-panel-grid">
+        <button class="tool-btn" id="exportBtn"><span class="tool-icon">📤</span>Export JSON</button>
+        <button class="tool-btn" id="importBtn"><span class="tool-icon">📥</span>Importer</button>
+        <button class="tool-btn" id="exportHtmlBtn"><span class="tool-icon">📄</span>Export HTML</button>
+        <button class="tool-btn" id="heroBgBtn"><span class="tool-icon">📷</span>Fond hero</button>
+      </div>
+
+      <div class="tools-section-label tools-section-label--fun">Divertissement</div>
+      <div class="tools-panel-grid">
+        <button class="tool-btn" id="blindTestBtn"><span class="tool-icon">🎲</span>Blind Test</button>
+        <button class="tool-btn" id="duelBtn"><span class="tool-icon">🥊</span>Duel</button>
+        <button class="tool-btn" id="letterboxBtn"><span class="tool-icon">🎞️</span>Letterbox</button>
+        <button class="tool-btn" id="ambianceBtn"><span class="tool-icon">🎵</span>Ambiance</button>
+        <button class="tool-btn" id="theatreBtn"><span class="tool-icon">🎭</span>Théâtre</button>
+        <button class="tool-btn" id="shortcutsBtn"><span class="tool-icon">⌨️</span>Raccourcis</button>
+      </div>
+
+      <div class="tools-panel-grid tools-panel-grid--danger">
+        <button class="tool-btn tool-btn-danger" id="resetBtn"><span class="tool-icon">🗑️</span>Réinitialiser</button>
+      </div>
     </div>
   </div>
   <div class="tools-panel-overlay hidden" id="toolsPanelOverlay"></div>
@@ -100,7 +120,13 @@
           <p>Ton journal personnel de films, séries, animés et jeux vidéo.</p>
           <button class="btn-primary" id="heroAddBtn">+ Ajouter un titre</button>
         </div>
-        <div class="hero-art">🎥</div>
+        <div class="hero-art">
+          <div class="hero-art-stack">
+            <div class="hero-art-card hero-art-card--back">🎮</div>
+            <div class="hero-art-card hero-art-card--mid">📺</div>
+            <div class="hero-art-card hero-art-card--front">🎬</div>
+          </div>
+        </div>
       </div>
 
       <div id="weeklyReport"></div>
