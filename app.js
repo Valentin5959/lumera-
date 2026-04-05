@@ -1170,11 +1170,11 @@ function renderLists() {
     return;
   }
   // Grouper : templates d'abord (par catégorie), puis listes perso
-  const catOrder = ['game', 'series', 'anime_film'];
+  const catOrder = ['game', 'series', 'movie', 'anime'];
   const templates = customLists.filter(l => l.tplKey);
   const customs   = customLists.filter(l => !l.tplKey);
 
-  const catLabel  = { game: '🎮 Jeux vidéo', series: '📺 Séries', anime_film: '🎬 Films animés' };
+  const catLabel  = { game: '🎮 Jeux vidéo', series: '📺 Séries', movie: '🎬 Films', anime: '✨ Animés' };
   let html = '';
 
   catOrder.forEach(cat => {
@@ -2920,20 +2920,25 @@ document.getElementById('backToLists')?.addEventListener('click', () => {
 
 const LIST_TEMPLATES = [
   // 🎮 Jeux vidéo
-  { tplId: 'game_marked',      name: "🎮 Jeux qui m'ont marqué",         color: '#7c3aed', category: 'game',       type: 'marked'      },
-  { tplId: 'game_exceptional', name: "✨ Jeux exceptionnels – YEAR",       color: '#d97706', category: 'game',       type: 'yearly'      },
-  { tplId: 'game_played',      name: "🕹️ Jeux joués en YEAR",             color: '#059669', category: 'game',       type: 'yearly'      },
-  { tplId: 'game_lifetime',    name: "👑 Les meilleurs jeux de ma vie",    color: '#dc2626', category: 'game',       type: 'lifetime'    },
+  { tplId: 'game_marked',      name: "🎮 Jeux qui m'ont marqué",          color: '#7c3aed', category: 'game',   type: 'marked'   },
+  { tplId: 'game_exceptional', name: "✨ Jeux exceptionnels – YEAR",        color: '#d97706', category: 'game',   type: 'yearly'   },
+  { tplId: 'game_played',      name: "🕹️ Jeux joués en YEAR",              color: '#059669', category: 'game',   type: 'yearly'   },
+  { tplId: 'game_lifetime',    name: "👑 Les meilleurs jeux de ma vie",     color: '#dc2626', category: 'game',   type: 'lifetime' },
   // 📺 Séries
-  { tplId: 'series_marked',      name: "📺 Séries qui m'ont marqué",        color: '#7c3aed', category: 'series',     type: 'marked'      },
-  { tplId: 'series_exceptional', name: "✨ Séries exceptionnelles – YEAR",   color: '#d97706', category: 'series',     type: 'yearly'      },
-  { tplId: 'series_played',      name: "👁️ Séries vues en YEAR",            color: '#059669', category: 'series',     type: 'yearly'      },
-  { tplId: 'series_lifetime',    name: "👑 Les meilleures séries de ma vie", color: '#dc2626', category: 'series',     type: 'lifetime'    },
-  // 🎬 Films animés
-  { tplId: 'anime_marked',      name: "🎬 Films animés qui m'ont marqué",        color: '#7c3aed', category: 'anime_film', type: 'marked'   },
-  { tplId: 'anime_exceptional', name: "✨ Films animés exceptionnels – YEAR",     color: '#d97706', category: 'anime_film', type: 'yearly'   },
-  { tplId: 'anime_played',      name: "🍿 Films animés vus en YEAR",              color: '#059669', category: 'anime_film', type: 'yearly'   },
-  { tplId: 'anime_lifetime',    name: "👑 Les meilleurs films animés de ma vie",  color: '#dc2626', category: 'anime_film', type: 'lifetime' },
+  { tplId: 'series_marked',      name: "📺 Séries qui m'ont marqué",         color: '#7c3aed', category: 'series', type: 'marked'   },
+  { tplId: 'series_exceptional', name: "✨ Séries exceptionnelles – YEAR",    color: '#d97706', category: 'series', type: 'yearly'   },
+  { tplId: 'series_played',      name: "👁️ Séries vues en YEAR",             color: '#059669', category: 'series', type: 'yearly'   },
+  { tplId: 'series_lifetime',    name: "👑 Les meilleures séries de ma vie",  color: '#dc2626', category: 'series', type: 'lifetime' },
+  // 🎬 Films
+  { tplId: 'movie_marked',      name: "🎬 Films qui m'ont marqué",           color: '#7c3aed', category: 'movie',  type: 'marked'   },
+  { tplId: 'movie_exceptional', name: "✨ Films exceptionnels – YEAR",         color: '#d97706', category: 'movie',  type: 'yearly'   },
+  { tplId: 'movie_played',      name: "🍿 Films vus en YEAR",                 color: '#059669', category: 'movie',  type: 'yearly'   },
+  { tplId: 'movie_lifetime',    name: "👑 Les meilleurs films de ma vie",      color: '#dc2626', category: 'movie',  type: 'lifetime' },
+  // ✨ Animés
+  { tplId: 'anime_marked',      name: "✨ Animés qui m'ont marqué",           color: '#7c3aed', category: 'anime',  type: 'marked'   },
+  { tplId: 'anime_exceptional', name: "✨ Animés exceptionnels – YEAR",        color: '#d97706', category: 'anime',  type: 'yearly'   },
+  { tplId: 'anime_played',      name: "👀 Animés vus en YEAR",                color: '#059669', category: 'anime',  type: 'yearly'   },
+  { tplId: 'anime_lifetime',    name: "👑 Les meilleurs animés de ma vie",     color: '#dc2626', category: 'anime',  type: 'lifetime' },
 ];
 
 function initTemplateLists() {
